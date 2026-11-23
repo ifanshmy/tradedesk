@@ -5,4 +5,4 @@
  *   - On GitHub Pages this file is rewritten by .github/workflows/pages.yml from the
  *     repository variable API_BASE_URL.
  */
-window.TD_CONFIG = { apiBase: "" };
+window.TD_CONFIG = { apiBase: "https://tradedesk-api-ax5n.onrender.com" };
