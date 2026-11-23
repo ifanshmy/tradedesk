@@ -1,0 +1,731 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>TradeDesk · Trading Journal</title>
+  <meta name="description" content="TradeDesk is a calm, private trading journal: read your broker statements, track NAV, journal trades and hit your goals." />
+  <meta name="theme-color" content="#f6f1e9" />
+  <meta property="og:title" content="TradeDesk · Trading Journal" />
+  <meta property="og:description" content="Read broker statements, track NAV, journal trades and hit your goals." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="assets/img/og-image.jpg" />
+  <link rel="icon" type="image/png" sizes="64x64" href="assets/img/favicon-64.png" />
+  <link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="preload" href="assets/fonts/manrope-normal-latin.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="assets/fonts/fraunces-normal-latin.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="stylesheet" href="assets/css/fonts.css" />
+  <link rel="preload" as="image" href="assets/img/login-wallpaper.webp" type="image/webp" />
+  <link rel="stylesheet" href="assets/css/app.css" />
+  <script>
+    /* Apply the saved theme before first paint to avoid a flash. */
+    (function () {
+      try {
+        var pref = localStorage.getItem("td_theme_v3") || "light";
+        var dark = pref === "dark" || (pref === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
+        document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
+      } catch (e) {}
+    })();
+  </script>
+  <script src="config.js"></script>
+  <script defer src="assets/vendor/chart-4.4.4.umd.min.js"></script>
+  <script type="module" src="assets/js/app.js"></script>
+</head>
+<body>
+  <!-- ======================= Icon sprite (Lucide-style, 24px, stroke) ======================= -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <defs>
+      <symbol id="i-overview" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></symbol>
+      <symbol id="i-trend" viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></symbol>
+      <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h6"/></symbol>
+      <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/></symbol>
+      <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+      <symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M10.6 5.1A10.4 10.4 0 0 1 12 5c6.4 0 10 7 10 7a17.6 17.6 0 0 1-2.5 3.4M6.6 6.6C3.9 8.4 2 12 2 12s3.6 7 10 7a9.9 9.9 0 0 0 5.4-1.6"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/><path d="M3 3l18 18"/></symbol>
+      <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></symbol>
+      <symbol id="i-upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></symbol>
+      <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+      <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M21 12a9 9 0 0 1-15.4 6.4L3 16"/><path d="M3 12A9 9 0 0 1 18.4 5.6L21 8"/><path d="M21 3v5h-5M3 21v-5h5"/></symbol>
+      <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+      <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></symbol>
+      <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+      <symbol id="i-moon" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></symbol>
+      <symbol id="i-monitor" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></symbol>
+      <symbol id="i-compass" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></symbol>
+      <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></symbol>
+      <symbol id="i-lock" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
+      <symbol id="i-file-lock" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h4"/><path d="M14 3v5h5v3"/><rect x="13" y="16" width="8" height="6" rx="1.2"/><path d="M15 16v-1.5a2 2 0 0 1 4 0V16"/></symbol>
+      <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></symbol>
+      <symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+      <symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+      <symbol id="i-chevron-left" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></symbol>
+      <symbol id="i-edit" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></symbol>
+      <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></symbol>
+      <symbol id="i-external" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14L21 3"/></symbol>
+      <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></symbol>
+      <symbol id="i-wallet" viewBox="0 0 24 24"><path d="M20 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-4a2 2 0 0 0 0 4h4v3a1 1 0 0 1-1 1H5a2 2 0 0 1-2-2V5"/></symbol>
+      <symbol id="i-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></symbol>
+      <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></symbol>
+      <symbol id="i-mail" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></symbol>
+      <symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-12.3 7.5L3 21l2-5.4A8.5 8.5 0 1 1 21 11.5z"/></symbol>
+      <symbol id="i-linkedin" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 10v7M8 7v.01M12 17v-4a2 2 0 0 1 4 0v4M12 10v7"/></symbol>
+      <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></symbol>
+      <symbol id="i-pie" viewBox="0 0 24 24"><path d="M21 15.9A10 10 0 1 1 8.1 3"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></symbol>
+      <symbol id="i-up" viewBox="0 0 24 24"><path d="M7 17L17 7M8 7h9v9"/></symbol>
+      <symbol id="i-down" viewBox="0 0 24 24"><path d="M7 7l10 10M17 8v9H8"/></symbol>
+      <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"/></symbol>
+      <symbol id="i-layers" viewBox="0 0 24 24"><path d="M12 2l10 5-10 5L2 7z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></symbol>
+      <symbol id="i-csv" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M12 11v6M9 14l3 3 3-3"/></symbol>
+    </defs>
+  </svg>
+
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <!-- Interactive topographic background (dashboard + admin) -->
+  <canvas id="terrain" class="terrain" aria-hidden="true"></canvas>
+  <div class="wash" aria-hidden="true"><span class="wash-a"></span><span class="wash-b"></span><span class="wash-c"></span></div>
+
+  <!-- ================================== AUTH ================================== -->
+  <section id="authPage" class="auth" aria-labelledby="authHeading">
+    <picture class="auth-photo" aria-hidden="true">
+      <source srcset="assets/img/login-wallpaper.webp" type="image/webp" />
+      <img src="assets/img/login-wallpaper.jpg" alt="" decoding="async" />
+    </picture>
+    <div class="auth-veil" aria-hidden="true"></div>
+
+    <div class="auth-shell">
+      <div class="auth-intro">
+        <div class="brand brand--light">
+          <img class="brand-mark" src="assets/img/logo-192.png" alt="" width="40" height="40" />
+          <span class="brand-word">Trade<em>Desk</em></span>
+        </div>
+        <h1 class="auth-headline">Every trade,<br /><em>grounded.</em></h1>
+        <p class="auth-lede">A calm, private journal for your portfolio. Drop in your monthly broker statement and TradeDesk reads the NAV, trades, fees and positions for you.</p>
+        <ul class="auth-points">
+          <li><svg class="ico"><use href="#i-file-lock"/></svg> Reads Moomoo, Mplus &amp; Webull PDFs, even password-protected ones</li>
+          <li><svg class="ico"><use href="#i-trend"/></svg> Monthly, quarterly &amp; yearly performance</li>
+          <li><svg class="ico"><use href="#i-target"/></svg> Goals that track themselves</li>
+        </ul>
+      </div>
+
+      <div class="auth-card glass glass--strong">
+        <div class="auth-card-head">
+          <h2 id="authHeading" class="auth-title">Welcome back</h2>
+          <p class="auth-sub" id="authSub">Sign in to your trading workspace.</p>
+        </div>
+
+        <div class="server-status" id="serverStatus" data-state="checking" role="status" aria-live="polite">
+          <span class="dot" aria-hidden="true"></span><span class="server-status-text">Connecting to server…</span>
+        </div>
+
+        <div class="seg seg--full auth-tabs" role="tablist" aria-label="Account access">
+          <button type="button" role="tab" class="on" aria-selected="true" data-auth-mode="login">Sign in</button>
+          <button type="button" role="tab" aria-selected="false" data-auth-mode="register">Create account</button>
+          <button type="button" role="tab" aria-selected="false" data-auth-mode="admin">Admin</button>
+        </div>
+
+        <!-- Sign in -->
+        <form id="loginForm" class="form" novalidate>
+          <div class="field">
+            <label for="loginUsername">Username or email</label>
+            <input id="loginUsername" name="username" autocomplete="username" required />
+          </div>
+          <div class="field">
+            <div class="field-row"><label for="loginPassword">Password</label><button type="button" class="link-btn" id="btnForgotPassword">Forgot password?</button></div>
+            <div class="pw-wrap">
+              <input id="loginPassword" name="password" type="password" autocomplete="current-password" required />
+              <button type="button" class="pw-eye" data-toggle-pw="loginPassword" aria-label="Show password"><svg class="ico"><use href="#i-eye"/></svg></button>
+            </div>
+          </div>
+          <p class="form-error" role="alert" hidden></p>
+          <button type="submit" class="btn btn--primary btn--lg btn--block">Sign in</button>
+        </form>
+
+        <!-- Register -->
+        <form id="registerForm" class="form" novalidate hidden>
+          <div class="grid-2">
+            <div class="field">
+              <label for="regUsername">Username</label>
+              <input id="regUsername" name="username" autocomplete="username" required minlength="3" maxlength="32" pattern="[A-Za-z0-9_.\-]{3,32}" />
+              <small class="hint">3–32 letters, numbers, . _ -</small>
+            </div>
+            <div class="field">
+              <label for="regDisplay">Display name</label>
+              <input id="regDisplay" name="display_name" autocomplete="name" required maxlength="64" />
+            </div>
+          </div>
+          <div class="grid-2">
+            <div class="field">
+              <label for="regEmail">Email</label>
+              <input id="regEmail" name="email" type="email" autocomplete="email" required />
+            </div>
+            <div class="field">
+              <label for="regCurrency">Base currency</label>
+              <select id="regCurrency" name="base_currency"><option>MYR</option><option>USD</option><option>SGD</option><option>HKD</option></select>
+            </div>
+          </div>
+          <div class="field">
+            <label for="registerPassword">Password</label>
+            <div class="pw-wrap">
+              <input id="registerPassword" name="password" type="password" autocomplete="new-password" required minlength="8" />
+              <button type="button" class="pw-eye" data-toggle-pw="registerPassword" aria-label="Show password"><svg class="ico"><use href="#i-eye"/></svg></button>
+            </div>
+            <small class="hint">At least 8 characters.</small>
+          </div>
+          <fieldset class="field">
+            <legend>Choose your avatar</legend>
+            <div class="avatar-picker" id="registerAvatarPicker" role="radiogroup" aria-label="Avatar"></div>
+            <input type="hidden" name="avatar" id="registerAvatarInput" value="av-1" />
+          </fieldset>
+          <p class="form-error" role="alert" hidden></p>
+          <button type="submit" class="btn btn--primary btn--lg btn--block">Create account</button>
+        </form>
+
+        <!-- Admin -->
+        <form id="adminLoginForm" class="form" novalidate hidden>
+          <div class="field">
+            <label for="adminUsername">Admin username</label>
+            <input id="adminUsername" name="username" autocomplete="username" required />
+          </div>
+          <div class="field">
+            <label for="adminPassword">Password</label>
+            <div class="pw-wrap">
+              <input id="adminPassword" name="password" type="password" autocomplete="current-password" required />
+              <button type="button" class="pw-eye" data-toggle-pw="adminPassword" aria-label="Show password"><svg class="ico"><use href="#i-eye"/></svg></button>
+            </div>
+          </div>
+          <p class="form-error" role="alert" hidden></p>
+          <button type="submit" class="btn btn--primary btn--lg btn--block">Open admin console</button>
+        </form>
+
+        <p class="auth-foot">TradeDesk by Irfan Syahmi · <span data-version></span></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================ WELCOME LOADER ============================ -->
+  <div id="welcome" class="welcome" hidden>
+    <div class="welcome-card glass glass--strong" role="status" aria-live="polite">
+      <div class="welcome-mark" aria-hidden="true">
+        <svg class="welcome-ring" viewBox="0 0 120 120"><circle cx="60" cy="60" r="54" pathLength="100"/></svg>
+        <img src="assets/img/logo-192.png" alt="" width="72" height="72" />
+      </div>
+      <p class="welcome-eyebrow" id="welcomeEyebrow">Good evening</p>
+      <h1 class="welcome-title"><span id="welcomeLead">Welcome back,</span> <em id="welcomeName">trader</em></h1>
+      <p class="welcome-sub" id="welcomeSub">Preparing your workspace</p>
+      <div class="welcome-bar" aria-hidden="true"><span id="welcomeBar"></span></div>
+      <ol class="welcome-steps" aria-hidden="true">
+        <li data-step="0">Accounts</li>
+        <li data-step="1">Statements</li>
+        <li data-step="2">Analytics</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- ================================== APP ================================== -->
+  <div id="appPage" class="app" hidden>
+    <header class="topnav">
+      <div class="topnav-bar glass">
+        <a class="brand" href="#/overview" aria-label="TradeDesk overview">
+          <img class="brand-mark" src="assets/img/logo-192.png" alt="" width="34" height="34" />
+          <span class="brand-word">Trade<em>Desk</em></span>
+        </a>
+
+        <nav class="primary-nav" id="primaryNav" aria-label="Main">
+          <span class="nav-pill" aria-hidden="true"></span>
+          <a href="#/overview" data-view="overview"><svg class="ico"><use href="#i-overview"/></svg><span>Overview</span></a>
+          <a href="#/performance" data-view="performance"><svg class="ico"><use href="#i-trend"/></svg><span>Performance</span></a>
+          <a href="#/statements" data-view="statements"><svg class="ico"><use href="#i-file"/></svg><span>Statements</span></a>
+          <a href="#/journal" data-view="journal"><svg class="ico"><use href="#i-book"/></svg><span>Journal</span></a>
+        </nav>
+
+        <div class="topnav-actions">
+          <span class="clock" id="clock" aria-label="Local time"></span>
+          <button type="button" class="icon-btn" id="btnPrivacy" aria-pressed="false" aria-label="Hide balances" data-tip="Hide balances"><svg class="ico"><use href="#i-eye"/></svg></button>
+          <button type="button" class="icon-btn hide-sm" id="btnExport" aria-label="Export CSV" data-tip="Export CSV"><svg class="ico"><use href="#i-download"/></svg></button>
+          <button type="button" class="icon-btn hide-sm" id="btnRefresh" aria-label="Refresh data" data-tip="Refresh"><svg class="ico"><use href="#i-refresh"/></svg></button>
+          <button type="button" class="btn btn--primary btn--sm" id="btnLogTrade"><svg class="ico"><use href="#i-plus"/></svg><span class="hide-xs">Log trade</span></button>
+          <button type="button" class="avatar-btn" id="btnUserMenu" aria-haspopup="menu" aria-expanded="false" aria-controls="userMenu" aria-label="Account menu">
+            <img id="navAvatar" src="assets/img/avatars/av-1.webp" alt="" width="36" height="36" />
+            <svg class="ico ico--sm"><use href="#i-chevron-down"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="user-menu glass glass--strong" id="userMenu" role="menu" hidden>
+        <div class="user-menu-head">
+          <img id="menuAvatar" src="assets/img/avatars/av-1.webp" alt="" width="48" height="48" />
+          <div><strong id="menuName">Trader</strong><span id="menuEmail"></span></div>
+        </div>
+        <button type="button" role="menuitem" id="menuProfile"><svg class="ico"><use href="#i-user"/></svg>Profile &amp; avatar</button>
+        <button type="button" role="menuitem" id="menuTour"><svg class="ico"><use href="#i-compass"/></svg>Take the tour</button>
+        <button type="button" role="menuitem" id="menuExport" class="show-sm"><svg class="ico"><use href="#i-download"/></svg>Export CSV</button>
+        <button type="button" role="menuitem" id="menuAdmin" hidden><svg class="ico"><use href="#i-shield"/></svg>Admin console</button>
+        <div class="user-menu-theme">
+          <span>Theme</span>
+          <div class="seg seg--icons" id="themeSeg" role="radiogroup" aria-label="Theme">
+            <button type="button" role="radio" data-theme-val="light" aria-label="Light"><svg class="ico"><use href="#i-sun"/></svg></button>
+            <button type="button" role="radio" data-theme-val="dark" aria-label="Dark"><svg class="ico"><use href="#i-moon"/></svg></button>
+            <button type="button" role="radio" data-theme-val="system" aria-label="System"><svg class="ico"><use href="#i-monitor"/></svg></button>
+          </div>
+        </div>
+        <button type="button" role="menuitem" id="menuLogout" class="danger"><svg class="ico"><use href="#i-logout"/></svg>Sign out</button>
+        <p class="user-menu-version">TradeDesk <span data-version></span></p>
+      </div>
+    </header>
+
+    <main id="main" class="page" tabindex="-1">
+      <!-- ============================ OVERVIEW ============================ -->
+      <section class="view" id="view-overview" data-title="Overview">
+        <div class="page-head">
+          <div>
+            <p class="eyebrow" id="todayLabel"></p>
+            <h1 class="page-title" id="greeting">Good evening</h1>
+            <p class="page-lede">Here’s where your portfolio stands today.</p>
+          </div>
+          <div class="page-actions">
+            <a class="btn btn--ghost" href="#/statements"><svg class="ico"><use href="#i-upload"/></svg>Upload statement</a>
+            <button type="button" class="btn btn--ghost" data-action="add-account"><svg class="ico"><use href="#i-plus"/></svg>Add account</button>
+          </div>
+        </div>
+
+        <div class="bento">
+          <article class="card glass hero-nav reveal" id="tourNav">
+            <div class="hero-nav-top">
+              <span class="label">Net asset value</span>
+              <span class="chip" id="heroBase">MYR</span>
+            </div>
+            <div class="hero-figure money" id="heroNav">—</div>
+            <div class="hero-delta" id="heroDelta"></div>
+            <div class="hero-spark"><canvas id="heroSpark" aria-label="Net asset value trend" role="img"></canvas></div>
+            <dl class="hero-meta">
+              <div><dt>Portfolio</dt><dd class="money" id="heroPortfolio">—</dd></div>
+              <div><dt>Cash</dt><dd class="money" id="heroCash">—</dd></div>
+              <div><dt>Net deposits</dt><dd class="money" id="heroDeposits">—</dd></div>
+            </dl>
+          </article>
+
+          <div class="kpis" id="kpiGrid"></div>
+
+          <article class="card glass span-8 reveal">
+            <header class="card-head">
+              <div><p class="eyebrow">Analytics</p><h2 class="card-title">Performance progression</h2></div>
+              <div class="seg" id="overviewPeriodSeg" role="group" aria-label="Period">
+                <button type="button" class="on" data-p="monthly">Monthly</button>
+                <button type="button" data-p="quarterly">Quarterly</button>
+                <button type="button" data-p="yearly">Yearly</button>
+              </div>
+            </header>
+            <div class="chart-box chart-box--tall"><canvas id="overviewPerfChart" role="img" aria-label="Ending NAV and realised P&amp;L by period"></canvas></div>
+          </article>
+
+          <article class="card glass span-4 reveal">
+            <header class="card-head">
+              <div><p class="eyebrow">Distribution</p><h2 class="card-title">Allocation</h2></div>
+              <div class="seg seg--sm" id="allocSeg" role="group" aria-label="Group by">
+                <button type="button" class="on" data-a="symbol">Holdings</button>
+                <button type="button" data-a="account">Account</button>
+                <button type="button" data-a="currency">Ccy</button>
+              </div>
+            </header>
+            <div class="alloc">
+              <div class="chart-box chart-box--donut"><canvas id="allocChart" role="img" aria-label="Portfolio allocation"></canvas><div class="donut-center"><span>Total</span><strong class="money" id="allocTotal">—</strong></div></div>
+              <ul class="legend" id="allocLegend"></ul>
+            </div>
+          </article>
+
+          <section class="span-12 reveal" id="tourAccounts" aria-labelledby="accountsHeading">
+            <div class="section-head">
+              <div><p class="eyebrow">Brokerage</p><h2 class="section-title" id="accountsHeading">Your accounts</h2></div>
+              <div class="carousel-ctrl">
+                <button type="button" class="icon-btn" data-scroll="-1" aria-label="Scroll accounts left"><svg class="ico"><use href="#i-chevron-left"/></svg></button>
+                <button type="button" class="icon-btn" data-scroll="1" aria-label="Scroll accounts right"><svg class="ico"><use href="#i-chevron-right"/></svg></button>
+              </div>
+            </div>
+            <div class="accounts" id="accountsGrid"></div>
+          </section>
+
+          <article class="card glass span-5 reveal" id="tourReader">
+            <header class="card-head">
+              <div><p class="eyebrow">Statement reader</p><h2 class="card-title">Drop your monthly statement</h2></div>
+            </header>
+            <div class="dropzone" data-dropzone="quick" tabindex="0" role="button" aria-label="Choose statement PDF files to upload">
+              <span class="dropzone-icon"><svg class="ico"><use href="#i-upload"/></svg></span>
+              <strong>Drag PDFs here or <u>browse</u></strong>
+              <span class="muted">Moomoo, Mplus &amp; Webull · password-protected files supported</span>
+              <input type="file" accept=".pdf,.txt,application/pdf" multiple hidden data-file-input="quick" />
+            </div>
+            <div class="field field--inline">
+              <label for="quickAccountSelect">Into account</label>
+              <select id="quickAccountSelect" data-account-select></select>
+            </div>
+            <div class="stmt-latest" id="latestStmt"></div>
+          </article>
+
+          <article class="card glass span-7 reveal" id="tourGoals">
+            <header class="card-head">
+              <div><p class="eyebrow">Milestones</p><h2 class="card-title">Trading goals</h2></div>
+              <button type="button" class="btn btn--ghost btn--sm" id="btnAddGoal"><svg class="ico"><use href="#i-plus"/></svg>New goal</button>
+            </header>
+            <div class="goals" id="goalsGrid"></div>
+          </article>
+
+          <article class="card glass span-12 reveal">
+            <header class="card-head">
+              <div><p class="eyebrow">Positions</p><h2 class="card-title">Current holdings</h2></div>
+              <select class="select--sm" id="holdAccountFilter" aria-label="Filter holdings by account" data-account-filter></select>
+            </header>
+            <div class="table-scroll">
+              <table class="tbl" id="holdingsTable">
+                <thead><tr><th>Security</th><th>Account</th><th>Market</th><th class="r">Qty</th><th class="r">Avg cost</th><th class="r">Price</th><th class="r">Market value</th><th class="r">Base value</th><th class="r">Weight</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <!-- ============================ PERFORMANCE ============================ -->
+      <section class="view" id="view-performance" data-title="Performance" hidden>
+        <div class="page-head">
+          <div><p class="eyebrow">Historical analytics</p><h1 class="page-title">Performance</h1><p class="page-lede">Starting vs ending NAV, realised P&amp;L, dividends, fees and win rate.</p></div>
+          <div class="page-actions">
+            <select class="select--sm" id="perfAccountFilter" aria-label="Filter by account" data-account-filter></select>
+            <div class="seg" id="detailPeriodSeg" role="group" aria-label="Period">
+              <button type="button" class="on" data-dp="monthly">Monthly</button>
+              <button type="button" data-dp="quarterly">Quarterly</button>
+              <button type="button" data-dp="yearly">Yearly</button>
+            </div>
+          </div>
+        </div>
+        <div class="bento">
+          <article class="card glass span-6 reveal"><header class="card-head"><h2 class="card-title">Realised P&amp;L + dividends</h2></header><div class="chart-box"><canvas id="periodPnlChart" role="img" aria-label="Realised profit and loss by period"></canvas></div></article>
+          <article class="card glass span-6 reveal"><header class="card-head"><h2 class="card-title">Net asset value</h2></header><div class="chart-box"><canvas id="periodNavChart" role="img" aria-label="Starting and ending NAV by period"></canvas></div></article>
+          <article class="card glass span-12 reveal">
+            <header class="card-head"><h2 class="card-title" id="periodTableTitle">Monthly breakdown</h2></header>
+            <div class="table-scroll">
+              <table class="tbl" id="periodTable">
+                <thead><tr><th>Period</th><th class="r">Start NAV</th><th class="r">End NAV</th><th class="r">Change</th><th class="r">Realised</th><th class="r">Dividends</th><th class="r">Fees</th><th class="r">Net flow</th><th class="r">Bought</th><th class="r">Sold</th><th class="r">Trades</th><th class="r">Win rate</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <!-- ============================ STATEMENTS ============================ -->
+      <section class="view" id="view-statements" data-title="Statements" hidden>
+        <div class="page-head">
+          <div><p class="eyebrow">PDF statement reader</p><h1 class="page-title">Statements</h1><p class="page-lede">Upload monthly broker statements to sync NAV, cash flows, positions and executed trades.</p></div>
+        </div>
+        <article class="card glass upload-card reveal">
+          <div class="dropzone dropzone--wide" data-dropzone="main" tabindex="0" role="button" aria-label="Choose statement PDF files to upload">
+            <span class="dropzone-icon"><svg class="ico"><use href="#i-upload"/></svg></span>
+            <div>
+              <strong>Drag statement PDFs here or <u>browse</u></strong>
+              <span class="muted">Several months at once is fine. If a PDF is locked, we’ll ask for its password before uploading.</span>
+            </div>
+            <input type="file" accept=".pdf,.txt,application/pdf" multiple hidden data-file-input="main" />
+          </div>
+          <div class="field field--inline">
+            <label for="stmtAccountSelect">Into account</label>
+            <select id="stmtAccountSelect" data-account-select></select>
+          </div>
+        </article>
+        <div class="tabs-scroll" id="statementTabs" role="tablist" aria-label="Uploaded statements"></div>
+        <div id="statementReport"></div>
+      </section>
+
+      <!-- ============================ JOURNAL ============================ -->
+      <section class="view" id="view-journal" data-title="Journal" hidden>
+        <div class="page-head">
+          <div><p class="eyebrow">Ledger</p><h1 class="page-title">Journal</h1><p class="page-lede">Every trade, deposit, dividend and fee, with your notes.</p></div>
+          <div class="page-actions">
+            <button type="button" class="btn btn--ghost" id="btnImportCsv"><svg class="ico"><use href="#i-upload"/></svg>Import CSV</button>
+            <input type="file" id="csvFileInput" accept=".csv,text/csv" hidden />
+            <button type="button" class="btn btn--primary" data-action="log-trade"><svg class="ico"><use href="#i-plus"/></svg>Add entry</button>
+          </div>
+        </div>
+        <div class="bento">
+          <article class="card glass span-12 reveal">
+            <header class="card-head"><div><p class="eyebrow">Realised</p><h2 class="card-title">Closed trades</h2></div></header>
+            <div class="table-scroll">
+              <table class="tbl" id="closedTable">
+                <thead><tr><th>Date</th><th>Security</th><th>Ccy</th><th class="r">Qty</th><th class="r">Avg entry</th><th class="r">Exit</th><th class="r">Fees</th><th class="r">P&amp;L</th><th class="r">Return</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </article>
+          <article class="card glass span-12 reveal">
+            <header class="card-head">
+              <div><p class="eyebrow">Complete ledger</p><h2 class="card-title">Journal entries</h2></div>
+              <div class="toolbar">
+                <select class="select--sm" id="txAccountFilter" aria-label="Filter by account" data-account-filter></select>
+                <label class="search"><svg class="ico"><use href="#i-search"/></svg><input id="txSearch" type="search" placeholder="Search symbol, type, note" aria-label="Search journal" /></label>
+              </div>
+            </header>
+            <div class="table-scroll table-scroll--tall">
+              <table class="tbl" id="txTable">
+                <thead><tr><th>Date</th><th>Account</th><th>Type</th><th>Security</th><th>Ccy</th><th class="r">Qty</th><th class="r">Price</th><th class="r">Fees</th><th class="r">Net</th><th>Notes</th><th class="r"><span class="sr-only">Actions</span></th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <p>© <span id="year"></span> TradeDesk by Irfan Syahmi · <span data-version></span></p>
+      <nav aria-label="Contact">
+        <a href="https://wa.me/60197881403" target="_blank" rel="noopener"><svg class="ico ico--sm"><use href="#i-chat"/></svg>WhatsApp</a>
+        <a href="mailto:irfannorazaman@gmail.com"><svg class="ico ico--sm"><use href="#i-mail"/></svg>Email</a>
+        <a href="https://www.linkedin.com/in/irfansyahminorazman" target="_blank" rel="noopener"><svg class="ico ico--sm"><use href="#i-linkedin"/></svg>LinkedIn</a>
+      </nav>
+    </footer>
+  </div>
+
+  <!-- ================================== ADMIN ================================== -->
+  <div id="adminPage" class="app" hidden>
+    <header class="topnav">
+      <div class="topnav-bar glass">
+        <span class="brand"><img class="brand-mark" src="assets/img/logo-192.png" alt="" width="34" height="34" /><span class="brand-word">Trade<em>Desk</em></span><span class="chip chip--accent">Admin</span></span>
+        <div class="topnav-actions">
+          <button type="button" class="btn btn--ghost btn--sm" id="btnAdminToApp"><svg class="ico"><use href="#i-overview"/></svg><span class="hide-xs">My dashboard</span></button>
+          <button type="button" class="btn btn--ghost btn--sm" id="btnAdminRefresh"><svg class="ico"><use href="#i-refresh"/></svg><span class="hide-xs">Refresh</span></button>
+          <button type="button" class="btn btn--ghost btn--sm" id="btnAdminLogout"><svg class="ico"><use href="#i-logout"/></svg><span class="hide-xs">Sign out</span></button>
+        </div>
+      </div>
+    </header>
+    <main class="page">
+      <div class="page-head"><div><p class="eyebrow">Protected</p><h1 class="page-title">Admin console</h1><p class="page-lede">Registered users, activity and platform notes. Passwords are hashed and never shown.</p></div></div>
+      <div class="kpis kpis--4" id="adminStats"></div>
+      <section class="card glass" aria-labelledby="adminUsersH"><header class="card-head"><h2 class="card-title" id="adminUsersH">Users</h2></header><div class="admin-users" id="adminUsers"></div></section>
+      <section class="card glass" aria-labelledby="adminSugH">
+        <header class="card-head"><h2 class="card-title" id="adminSugH">Suggestions &amp; roadmap</h2></header>
+        <form id="adminSuggestionForm" class="toolbar toolbar--wrap">
+          <input name="author" class="input--sm" placeholder="Author" value="Admin" required maxlength="128" aria-label="Author" />
+          <select name="category" class="select--sm" aria-label="Category"><option>Feature</option><option>Statement Parser</option><option>Analytics</option><option>Security</option></select>
+          <input name="message" class="input--sm grow" placeholder="Add a suggestion or improvement note" required maxlength="2000" aria-label="Suggestion" />
+          <button type="submit" class="btn btn--primary btn--sm">Add</button>
+        </form>
+        <div class="suggestions" id="adminSuggestions"></div>
+      </section>
+    </main>
+    <footer class="site-footer"><p>TradeDesk admin · <span data-version></span></p></footer>
+  </div>
+
+  <!-- ================================== DIALOGS ================================== -->
+  <dialog id="pdfPasswordDlg" class="dlg" aria-labelledby="pdfPwTitle">
+    <form method="dialog" id="pdfPasswordForm" class="dlg-body">
+      <div class="dlg-icon dlg-icon--accent"><svg class="ico"><use href="#i-file-lock"/></svg></div>
+      <h2 id="pdfPwTitle" class="dlg-title">Unlock protected statements</h2>
+      <p class="dlg-lede" id="pdfPwLede">Some of your PDFs are password-protected. Enter each password once and we’ll unlock and read them.</p>
+      <label class="check" id="pdfPwSameWrap" hidden><input type="checkbox" id="pdfPwSame" /> <span>Use the same password for every file</span></label>
+      <div class="pw-files" id="pdfPwFiles"></div>
+      <p class="dlg-note"><svg class="ico ico--sm"><use href="#i-info"/></svg><span>Brokers often use your IC/passport number or date of birth. Passwords are used only to read the file and are never stored.</span></p>
+      <div class="dlg-actions">
+        <button type="button" class="btn btn--ghost" id="pdfPwSkip">Skip locked files</button>
+        <button type="submit" class="btn btn--primary" value="unlock"><svg class="ico"><use href="#i-lock"/></svg>Unlock &amp; upload</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="parsingDlg" class="dlg dlg--sm" aria-labelledby="parsingTitle">
+    <div class="dlg-body center">
+      <div class="spinner" aria-hidden="true"></div>
+      <h2 class="dlg-title" id="parsingTitle">Reading your statement</h2>
+      <p class="dlg-lede" id="parsingStatus">Extracting NAV, trades, cash movements and positions.</p>
+    </div>
+  </dialog>
+
+  <dialog id="accountDlg" class="dlg" aria-labelledby="accountDlgTitle">
+    <form method="dialog" id="accountForm" class="dlg-body">
+      <h2 class="dlg-title" id="accountDlgTitle">Add account</h2>
+      <input type="hidden" name="id" />
+      <div class="grid-2">
+        <div class="field"><label for="accName">Account name</label><input id="accName" name="name" required maxlength="64" /></div>
+        <div class="field"><label for="accBroker">Broker</label><select id="accBroker" name="broker"><option value="moomoo">Moomoo</option><option value="mplus">Mplus</option><option value="webull">Webull</option><option value="other">Other</option></select></div>
+      </div>
+      <div class="grid-2">
+        <div class="field"><label for="accCurrency">Primary currency</label><select id="accCurrency" name="currency"><option>MYR</option><option>USD</option><option>SGD</option><option>HKD</option><option>CNH</option></select></div>
+        <div class="field"><label for="accNumber">Account number <span class="muted">(optional)</span></label><input id="accNumber" name="account_number" maxlength="64" /></div>
+      </div>
+      <fieldset class="field"><legend>Currencies traded</legend>
+        <div class="chips" id="accCurrencies">
+          <label class="chip-check"><input type="checkbox" value="MYR" /><span>MYR</span></label>
+          <label class="chip-check"><input type="checkbox" value="USD" /><span>USD</span></label>
+          <label class="chip-check"><input type="checkbox" value="SGD" /><span>SGD</span></label>
+          <label class="chip-check"><input type="checkbox" value="HKD" /><span>HKD</span></label>
+          <label class="chip-check"><input type="checkbox" value="CNH" /><span>CNH</span></label>
+        </div>
+      </fieldset>
+      <div class="field"><label for="accUrl">Broker login URL</label><input id="accUrl" name="url" type="url" placeholder="https://" /></div>
+      <fieldset class="field"><legend>Card colour</legend><div class="swatches" id="accSwatches" role="radiogroup" aria-label="Card colour"></div><input type="hidden" name="color" id="accColor" /></fieldset>
+      <div class="dlg-actions">
+        <button type="button" class="btn btn--danger-ghost" id="btnDeleteAccount" hidden><svg class="ico"><use href="#i-trash"/></svg>Delete</button>
+        <span class="grow"></span>
+        <button type="button" class="btn btn--ghost" data-close>Cancel</button>
+        <button type="submit" class="btn btn--primary">Save account</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="goalDlg" class="dlg" aria-labelledby="goalDlgTitle">
+    <form method="dialog" id="goalForm" class="dlg-body">
+      <h2 class="dlg-title" id="goalDlgTitle">New goal</h2>
+      <input type="hidden" name="id" />
+      <div class="field"><label for="goalTitle">Goal</label><input id="goalTitle" name="title" required maxlength="120" placeholder="e.g. Reach RM 20,000 NAV" /></div>
+      <div class="grid-2">
+        <div class="field"><label for="goalMetric">Track automatically</label>
+          <select id="goalMetric" name="auto_metric">
+            <option value="none">Manual progress</option>
+            <option value="nav">Portfolio NAV</option>
+            <option value="realized_pnl">Realised P&amp;L + dividends</option>
+            <option value="total_return">Total net return</option>
+            <option value="win_rate">Win rate %</option>
+            <option value="cash">Cash balance</option>
+          </select>
+        </div>
+        <div class="field"><label for="goalPeriod">Period</label><input id="goalPeriod" name="period" maxlength="40" placeholder="2026" /></div>
+      </div>
+      <div class="grid-2">
+        <div class="field"><label for="goalTarget">Target</label><input id="goalTarget" name="target_amount" type="number" step="any" min="0" required /></div>
+        <div class="field" id="goalCurrentWrap"><label for="goalCurrent">Current (manual)</label><input id="goalCurrent" name="current_amount" type="number" step="any" value="0" /></div>
+      </div>
+      <div class="grid-2">
+        <div class="field"><label for="goalCurrency">Unit</label><select id="goalCurrency" name="currency"><option>MYR</option><option>USD</option><option>SGD</option><option value="%">%</option></select></div>
+        <div class="field"><label for="goalNotes">Note</label><input id="goalNotes" name="notes" maxlength="200" placeholder="Strategy rule or reminder" /></div>
+      </div>
+      <input type="hidden" name="color" id="goalColor" value="#b4532a" />
+      <div class="dlg-actions">
+        <button type="button" class="btn btn--danger-ghost" id="btnDeleteGoal" hidden><svg class="ico"><use href="#i-trash"/></svg>Delete</button>
+        <span class="grow"></span>
+        <button type="button" class="btn btn--ghost" data-close>Cancel</button>
+        <button type="submit" class="btn btn--primary">Save goal</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="journalDlg" class="dlg" aria-labelledby="journalDlgTitle">
+    <form method="dialog" id="journalForm" class="dlg-body">
+      <h2 class="dlg-title" id="journalDlgTitle">Log entry</h2>
+      <input type="hidden" name="id" />
+      <div class="seg seg--full" id="jnlTypeSeg" role="radiogroup" aria-label="Entry type">
+        <button type="button" data-type="BUY">Buy</button>
+        <button type="button" data-type="SELL">Sell</button>
+        <button type="button" data-type="DEPOSIT">Deposit</button>
+        <button type="button" data-type="WITHDRAW">Withdraw</button>
+        <button type="button" data-type="DIVIDEND">Dividend</button>
+        <button type="button" data-type="FEE">Fee</button>
+      </div>
+      <input type="hidden" name="type" id="jnlType" value="BUY" />
+      <div class="grid-2">
+        <div class="field"><label for="jnlAccount">Account</label><select id="jnlAccount" name="account_id" required></select></div>
+        <div class="field"><label for="jnlDate">Date</label><input id="jnlDate" name="date" type="date" required /></div>
+      </div>
+      <div class="grid-2" data-jnl="sym">
+        <div class="field"><label for="jnlSymbol">Symbol</label><input id="jnlSymbol" name="symbol" maxlength="32" placeholder="e.g. MAYBANK or AAPL" autocapitalize="characters" /></div>
+        <div class="field"><label for="jnlMarket">Market</label><input id="jnlMarket" name="market" maxlength="16" placeholder="BMS / US" /></div>
+      </div>
+      <div class="grid-3" data-jnl="trade">
+        <div class="field"><label for="jnlQty">Quantity</label><input id="jnlQty" name="qty" type="number" step="any" min="0" /></div>
+        <div class="field"><label for="jnlPrice">Price</label><input id="jnlPrice" name="price" type="number" step="any" min="0" /></div>
+        <div class="field"><label for="jnlFees">Fees</label><input id="jnlFees" name="fees" type="number" step="any" min="0" value="0" /></div>
+      </div>
+      <div class="grid-2">
+        <div class="field" data-jnl="cash"><label for="jnlAmount">Amount</label><input id="jnlAmount" name="amount" type="number" step="any" min="0" /></div>
+        <div class="field"><label for="jnlCurrency">Currency</label><select id="jnlCurrency" name="currency"><option>MYR</option><option>USD</option><option>SGD</option><option>HKD</option><option>CNH</option></select></div>
+      </div>
+      <div class="field"><label for="jnlNotes">Notes / thesis</label><textarea id="jnlNotes" name="notes" rows="2" maxlength="500" placeholder="Why did you take this trade?"></textarea></div>
+      <p class="form-error" role="alert" hidden></p>
+      <div class="dlg-actions">
+        <button type="button" class="btn btn--ghost" data-close>Cancel</button>
+        <button type="submit" class="btn btn--primary">Save entry</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="profileDlg" class="dlg" aria-labelledby="profileDlgTitle">
+    <form method="dialog" id="profileForm" class="dlg-body">
+      <h2 class="dlg-title" id="profileDlgTitle">Profile &amp; avatar</h2>
+      <fieldset class="field"><legend>Avatar</legend><div class="avatar-picker" id="profileAvatarPicker" role="radiogroup" aria-label="Avatar"></div><input type="hidden" name="avatar" id="profileAvatarInput" /></fieldset>
+      <div class="grid-2">
+        <div class="field"><label for="profName">Display name</label><input id="profName" name="display_name" required maxlength="64" /></div>
+        <div class="field"><label for="profEmail">Email</label><input id="profEmail" name="email" type="email" /></div>
+      </div>
+      <div class="field"><label for="profCurrency">Base reporting currency</label><select id="profCurrency" name="base_currency"><option>MYR</option><option>USD</option><option>SGD</option><option>HKD</option></select></div>
+      <details class="disclosure">
+        <summary>Change password</summary>
+        <div class="grid-2">
+          <div class="field"><label for="profCurrentPw">Current password</label><input id="profCurrentPw" name="current_password" type="password" autocomplete="current-password" /></div>
+          <div class="field"><label for="profNewPw">New password</label><input id="profNewPw" name="password" type="password" autocomplete="new-password" minlength="8" /></div>
+        </div>
+      </details>
+      <p class="form-error" role="alert" hidden></p>
+      <div class="dlg-actions">
+        <button type="button" class="btn btn--ghost" data-close>Cancel</button>
+        <button type="submit" class="btn btn--primary">Save profile</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="forgotDlg" class="dlg dlg--sm" aria-labelledby="forgotTitle">
+    <form method="dialog" id="forgotForm" class="dlg-body">
+      <h2 class="dlg-title" id="forgotTitle">Reset password</h2>
+      <p class="dlg-lede">Enter your username or email. If it matches an account, we’ll email a temporary password to the address on file.</p>
+      <div class="field"><label for="forgotIdent">Username or email</label><input id="forgotIdent" name="identifier" required autocomplete="username" /></div>
+      <p class="form-note" id="forgotResult" role="status" hidden></p>
+      <div class="dlg-actions">
+        <button type="button" class="btn btn--ghost" data-close>Close</button>
+        <button type="submit" class="btn btn--primary">Send email</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="exportDlg" class="dlg" aria-labelledby="exportTitle">
+    <div class="dlg-body">
+      <h2 class="dlg-title" id="exportTitle">Export CSV</h2>
+      <p class="dlg-lede">Statement summaries and journal entries, one file per month.</p>
+      <div class="tabs-scroll" id="exportTabs" role="tablist" aria-label="Months"></div>
+      <div class="export-preview" id="exportPreview"></div>
+      <div class="dlg-actions">
+        <button type="button" class="btn btn--ghost" data-close>Close</button>
+        <button type="button" class="btn btn--ghost" id="btnExportAll">Download all months</button>
+        <button type="button" class="btn btn--primary" id="btnExportOne">Download month</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="confirmDlg" class="dlg dlg--sm" aria-labelledby="confirmTitle">
+    <form method="dialog" class="dlg-body">
+      <div class="dlg-icon dlg-icon--danger"><svg class="ico"><use href="#i-alert"/></svg></div>
+      <h2 class="dlg-title" id="confirmTitle">Are you sure?</h2>
+      <p class="dlg-lede" id="confirmBody"></p>
+      <div class="dlg-actions">
+        <button type="submit" value="cancel" class="btn btn--ghost">Cancel</button>
+        <button type="submit" value="ok" class="btn btn--danger" id="confirmOk">Delete</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ================================== TOUR ================================== -->
+  <div class="tour" id="tour" hidden>
+    <div class="tour-spot" id="tourSpot" aria-hidden="true"></div>
+    <div class="tour-card glass glass--strong" id="tourCard" role="dialog" aria-modal="true" aria-labelledby="tourTitle" aria-describedby="tourBody">
+      <div class="tour-progress"><span id="tourStepLabel">1 of 8</span><div class="tour-dots" id="tourDots" aria-hidden="true"></div></div>
+      <h2 class="tour-title" id="tourTitle"></h2>
+      <p class="tour-body" id="tourBody"></p>
+      <div class="tour-actions">
+        <button type="button" class="link-btn" id="tourSkip">Skip tour</button>
+        <span class="grow"></span>
+        <button type="button" class="btn btn--ghost btn--sm" id="tourBack">Back</button>
+        <button type="button" class="btn btn--primary btn--sm" id="tourNext">Next</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toasts" id="toasts" role="region" aria-live="polite" aria-label="Notifications"></div>
+</body>
+</html>
