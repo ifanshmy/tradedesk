@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>TradeDesk · Trading Journal</title>
   <meta name="description" content="TradeDesk is a calm, private trading journal: read your broker statements, track NAV, journal trades and hit your goals." />
-  <meta name="theme-color" content="#f6f1e9" />
+  <meta name="theme-color" content="#f3f2ee" />
   <meta property="og:title" content="TradeDesk · Trading Journal" />
   <meta property="og:description" content="Read broker statements, track NAV, journal trades and hit your goals." />
   <meta property="og:type" content="website" />
@@ -13,10 +13,9 @@
   <link rel="icon" type="image/png" sizes="64x64" href="assets/img/favicon-64.png" />
   <link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png" />
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="preload" href="assets/fonts/manrope-normal-latin.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="preload" href="assets/fonts/fraunces-normal-latin.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="assets/fonts/jakarta-normal-latin.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="stylesheet" href="assets/css/fonts.css" />
-  <link rel="preload" as="image" href="assets/img/login-wallpaper.webp" type="image/webp" />
+  <link rel="preload" as="image" type="image/webp" imagesrcset="assets/img/wallpaper-1600.webp 1600w, assets/img/wallpaper-2560.webp 2560w, assets/img/wallpaper-3840.webp 3840w" imagesizes="100vw" />
   <link rel="stylesheet" href="assets/css/app.css" />
   <script>
     /* Apply the saved theme before first paint to avoid a flash. */
@@ -82,15 +81,15 @@
 
   <a class="skip-link" href="#main">Skip to content</a>
 
-  <!-- Interactive topographic background (dashboard + admin) -->
-  <canvas id="terrain" class="terrain" aria-hidden="true"></canvas>
+  <!-- Interactive dot-field background (dashboard + admin) -->
+  <canvas id="fieldBg" class="field-bg" aria-hidden="true"></canvas>
   <div class="wash" aria-hidden="true"><span class="wash-a"></span><span class="wash-b"></span><span class="wash-c"></span></div>
 
   <!-- ================================== AUTH ================================== -->
   <section id="authPage" class="auth" aria-labelledby="authHeading">
     <picture class="auth-photo" aria-hidden="true">
-      <source srcset="assets/img/login-wallpaper.webp" type="image/webp" />
-      <img src="assets/img/login-wallpaper.jpg" alt="" decoding="async" />
+      <source type="image/webp" sizes="100vw" srcset="assets/img/wallpaper-1600.webp 1600w, assets/img/wallpaper-2560.webp 2560w, assets/img/wallpaper-3840.webp 3840w" />
+      <img src="assets/img/wallpaper-2560.jpg" alt="" decoding="async" fetchpriority="high" />
     </picture>
     <div class="auth-veil" aria-hidden="true"></div>
 
@@ -100,7 +99,7 @@
           <img class="brand-mark" src="assets/img/logo-192.png" alt="" width="40" height="40" />
           <span class="brand-word">Trade<em>Desk</em></span>
         </div>
-        <h1 class="auth-headline">Every trade,<br /><em>grounded.</em></h1>
+        <h1 class="auth-headline itext" data-itext>Every trade, <span class="accent">grounded.</span></h1>
         <p class="auth-lede">A calm, private journal for your portfolio. Drop in your monthly broker statement and TradeDesk reads the NAV, trades, fees and positions for you.</p>
         <ul class="auth-points">
           <li><svg class="ico"><use href="#i-file-lock"/></svg> Reads Moomoo, Mplus &amp; Webull PDFs, even password-protected ones</li>
@@ -199,6 +198,25 @@
           <button type="submit" class="btn btn--primary btn--lg btn--block">Open admin console</button>
         </form>
 
+        <!-- Reset password (opened from the emailed link) -->
+        <form id="resetForm" class="form" novalidate hidden>
+          <div class="field">
+            <label for="resetPassword">New password</label>
+            <div class="pw-wrap">
+              <input id="resetPassword" name="password" type="password" autocomplete="new-password" required minlength="8" />
+              <button type="button" class="pw-eye" data-toggle-pw="resetPassword" aria-label="Show password"><svg class="ico"><use href="#i-eye"/></svg></button>
+            </div>
+            <small class="hint">At least 8 characters.</small>
+          </div>
+          <div class="field">
+            <label for="resetPassword2">Confirm new password</label>
+            <input id="resetPassword2" name="password2" type="password" autocomplete="new-password" required minlength="8" />
+          </div>
+          <p class="form-error" role="alert" hidden></p>
+          <button type="submit" class="btn btn--primary btn--lg btn--block">Save new password</button>
+          <button type="button" class="link-btn" id="resetCancel" style="justify-self:center">Back to sign in</button>
+        </form>
+
         <p class="auth-foot">TradeDesk by Irfan Syahmi · <span data-version></span></p>
       </div>
     </div>
@@ -281,7 +299,7 @@
         <div class="page-head">
           <div>
             <p class="eyebrow" id="todayLabel"></p>
-            <h1 class="page-title" id="greeting">Good evening</h1>
+            <h1 class="page-title itext" id="greeting">Good evening</h1>
             <p class="page-lede">Here’s where your portfolio stands today.</p>
           </div>
           <div class="page-actions">
@@ -338,10 +356,7 @@
           <section class="span-12 reveal" id="tourAccounts" aria-labelledby="accountsHeading">
             <div class="section-head">
               <div><p class="eyebrow">Brokerage</p><h2 class="section-title" id="accountsHeading">Your accounts</h2></div>
-              <div class="carousel-ctrl">
-                <button type="button" class="icon-btn" data-scroll="-1" aria-label="Scroll accounts left"><svg class="ico"><use href="#i-chevron-left"/></svg></button>
-                <button type="button" class="icon-btn" data-scroll="1" aria-label="Scroll accounts right"><svg class="ico"><use href="#i-chevron-right"/></svg></button>
-              </div>
+              <button type="button" class="btn btn--ghost btn--sm" data-action="add-account"><svg class="ico"><use href="#i-plus"/></svg>Add account</button>
             </div>
             <div class="accounts" id="accountsGrid"></div>
           </section>
@@ -389,7 +404,7 @@
       <!-- ============================ PERFORMANCE ============================ -->
       <section class="view" id="view-performance" data-title="Performance" hidden>
         <div class="page-head">
-          <div><p class="eyebrow">Historical analytics</p><h1 class="page-title">Performance</h1><p class="page-lede">Starting vs ending NAV, realised P&amp;L, dividends, fees and win rate.</p></div>
+          <div><p class="eyebrow">Historical analytics</p><h1 class="page-title itext" data-itext>Performance</h1><p class="page-lede">Starting vs ending NAV, realised P&amp;L, dividends, fees and win rate.</p></div>
           <div class="page-actions">
             <select class="select--sm" id="perfAccountFilter" aria-label="Filter by account" data-account-filter></select>
             <div class="seg" id="detailPeriodSeg" role="group" aria-label="Period">
@@ -417,7 +432,7 @@
       <!-- ============================ STATEMENTS ============================ -->
       <section class="view" id="view-statements" data-title="Statements" hidden>
         <div class="page-head">
-          <div><p class="eyebrow">PDF statement reader</p><h1 class="page-title">Statements</h1><p class="page-lede">Upload monthly broker statements to sync NAV, cash flows, positions and executed trades.</p></div>
+          <div><p class="eyebrow">PDF statement reader</p><h1 class="page-title itext" data-itext>Statements</h1><p class="page-lede">Upload monthly broker statements to sync NAV, cash flows, positions and executed trades.</p></div>
         </div>
         <article class="card glass upload-card reveal">
           <div class="dropzone dropzone--wide" data-dropzone="main" tabindex="0" role="button" aria-label="Choose statement PDF files to upload">
@@ -440,7 +455,7 @@
       <!-- ============================ JOURNAL ============================ -->
       <section class="view" id="view-journal" data-title="Journal" hidden>
         <div class="page-head">
-          <div><p class="eyebrow">Ledger</p><h1 class="page-title">Journal</h1><p class="page-lede">Every trade, deposit, dividend and fee, with your notes.</p></div>
+          <div><p class="eyebrow">Ledger</p><h1 class="page-title itext" data-itext>Journal</h1><p class="page-lede">Every trade, deposit, dividend and fee, with your notes.</p></div>
           <div class="page-actions">
             <button type="button" class="btn btn--ghost" id="btnImportCsv"><svg class="ico"><use href="#i-upload"/></svg>Import CSV</button>
             <input type="file" id="csvFileInput" accept=".csv,text/csv" hidden />
@@ -499,19 +514,23 @@
       </div>
     </header>
     <main class="page">
-      <div class="page-head"><div><p class="eyebrow">Protected</p><h1 class="page-title">Admin console</h1><p class="page-lede">Registered users, activity and platform notes. Passwords are hashed and never shown.</p></div></div>
+      <div class="page-head"><div><p class="eyebrow">Protected</p><h1 class="page-title itext" data-itext>Admin console</h1><p class="page-lede">Registered users, activity and platform notes. Passwords are hashed and never shown.</p></div></div>
       <div class="kpis kpis--4" id="adminStats"></div>
-      <section class="card glass" aria-labelledby="adminUsersH"><header class="card-head"><h2 class="card-title" id="adminUsersH">Users</h2></header><div class="admin-users" id="adminUsers"></div></section>
-      <section class="card glass" aria-labelledby="adminSugH">
-        <header class="card-head"><h2 class="card-title" id="adminSugH">Suggestions &amp; roadmap</h2></header>
-        <form id="adminSuggestionForm" class="toolbar toolbar--wrap">
-          <input name="author" class="input--sm" placeholder="Author" value="Admin" required maxlength="128" aria-label="Author" />
-          <select name="category" class="select--sm" aria-label="Category"><option>Feature</option><option>Statement Parser</option><option>Analytics</option><option>Security</option></select>
-          <input name="message" class="input--sm grow" placeholder="Add a suggestion or improvement note" required maxlength="2000" aria-label="Suggestion" />
-          <button type="submit" class="btn btn--primary btn--sm">Add</button>
-        </form>
-        <div class="suggestions" id="adminSuggestions"></div>
-      </section>
+      <div class="admin-grid">
+        <section class="card glass" aria-labelledby="adminUsersH"><header class="card-head"><div><p class="eyebrow">Directory</p><h2 class="card-title" id="adminUsersH">Users</h2></div></header><div class="admin-users" id="adminUsers"></div></section>
+        <section class="card glass" aria-labelledby="adminSugH">
+          <header class="card-head"><div><p class="eyebrow">Roadmap</p><h2 class="card-title" id="adminSugH">Suggestions</h2></div></header>
+          <form id="adminSuggestionForm" class="suggestion-form">
+            <input name="author" class="input--sm" placeholder="Author" value="Admin" required maxlength="128" aria-label="Author" />
+            <select name="category" class="select--sm" aria-label="Category"><option>Feature</option><option>Statement Parser</option><option>Analytics</option><option>Security</option></select>
+            <div class="grow-row">
+              <input name="message" class="input--sm" placeholder="Add a suggestion or improvement note" required maxlength="2000" aria-label="Suggestion" />
+              <button type="submit" class="btn btn--primary btn--sm">Add</button>
+            </div>
+          </form>
+          <div class="suggestions" id="adminSuggestions"></div>
+        </section>
+      </div>
     </main>
     <footer class="site-footer"><p>TradeDesk admin · <span data-version></span></p></footer>
   </div>
@@ -674,12 +693,12 @@
   <dialog id="forgotDlg" class="dlg dlg--sm" aria-labelledby="forgotTitle">
     <form method="dialog" id="forgotForm" class="dlg-body">
       <h2 class="dlg-title" id="forgotTitle">Reset password</h2>
-      <p class="dlg-lede">Enter your username or email. If it matches an account, we’ll email a temporary password to the address on file.</p>
+      <p class="dlg-lede">Enter your username or email. We’ll email a secure link to reset your password. It expires in 30 minutes.</p>
       <div class="field"><label for="forgotIdent">Username or email</label><input id="forgotIdent" name="identifier" required autocomplete="username" /></div>
       <p class="form-note" id="forgotResult" role="status" hidden></p>
       <div class="dlg-actions">
         <button type="button" class="btn btn--ghost" data-close>Close</button>
-        <button type="submit" class="btn btn--primary">Send email</button>
+        <button type="submit" class="btn btn--primary">Send reset link</button>
       </div>
     </form>
   </dialog>

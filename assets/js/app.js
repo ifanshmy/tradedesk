@@ -2,7 +2,8 @@
    TradeDesk 3 — application controller
    ========================================================================== */
 import { APP_VERSION } from "./version.js";
-import { createTerrain } from "./terrain.js";
+import { createField } from "./field.js";
+import { interactive, setInteractiveHTML, countTo } from "./itext.js";
 import { createTour } from "./tour.js";
 
 /* ------------------------------------------------------------------ utils */
@@ -64,19 +65,30 @@ function resolveAvatar(id) {
   return AVATARS[h % AVATARS.length].id;
 }
 
-const EARTH = [
-  { c: "#b4532a", n: "Terracotta" }, { c: "#5f7155", n: "Sage" }, { c: "#c9973f", n: "Ochre" }, { c: "#7a4e2d", n: "Umber" },
-  { c: "#b7735e", n: "Clay rose" }, { c: "#56707a", n: "Slate" }, { c: "#7d7a3a", n: "Olive" }, { c: "#3b2f2a", n: "Espresso" },
+const PALETTE = [
+  { c: "#0f1013", n: "Ink" }, { c: "#ff5b2e", n: "Ember" }, { c: "#0b9488", n: "Teal" }, { c: "#2f6bf2", n: "Blue" },
+  { c: "#f2a900", n: "Amber" }, { c: "#8b5cf6", n: "Violet" }, { c: "#e25d8f", n: "Rose" }, { c: "#64748b", n: "Slate" },
 ];
+// Colours saved by earlier versions map onto the current palette.
 const LEGACY_COLOR = {
-  "#f97316": "#b4532a", "#06b6d4": "#56707a", "#a855f7": "#7a4e2d", "#ec4899": "#b7735e", "#3b82f6": "#56707a",
-  "#10b981": "#5f7155", "#c084fc": "#c9973f", "#8b5cf6": "#7d7a3a", "#b8b5ff": "#b4532a",
+  "#f97316": "#ff5b2e", "#06b6d4": "#2f6bf2", "#a855f7": "#8b5cf6", "#ec4899": "#e25d8f", "#3b82f6": "#2f6bf2",
+  "#10b981": "#0b9488", "#c084fc": "#8b5cf6", "#b8b5ff": "#8b5cf6",
+  "#b4532a": "#ff5b2e", "#5f7155": "#0b9488", "#c9973f": "#f2a900", "#7a4e2d": "#64748b", "#b7735e": "#e25d8f",
+  "#56707a": "#2f6bf2", "#7d7a3a": "#0b9488", "#3b2f2a": "#0f1013",
 };
-const earthColor = (c, fallback = "#b4532a") => {
+const earthColor = (c, fallback = "#ff5b2e") => {
   const k = String(c || "").toLowerCase();
   if (LEGACY_COLOR[k]) return LEGACY_COLOR[k];
   return /^#[0-9a-f]{6}$/.test(k) ? k : fallback;
 };
+// Known brokers get their own logo and brand colour.
+const BRANDS = {
+  moomoo: { label: "Moomoo", color: "#f86800", logo: "assets/img/brokers/moomoo.webp", full: true },
+  webull: { label: "Webull", color: "#2860f0", logo: "assets/img/brokers/webull.webp" },
+  mplus: { label: "Mplus Online", color: "#e8231b", logo: "assets/img/brokers/mplus.webp" },
+};
+const brandOf = (a) => BRANDS[String(a?.broker || "").toLowerCase()] || null;
+const accountColor = (a) => brandOf(a)?.color || earthColor(a?.color);
 const cssVar = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 const chartPalette = () => [1, 2, 3, 4, 5, 6, 7, 8].map((i) => cssVar(`--chart-${i}`));
 
@@ -100,10 +112,11 @@ const state = {
   exportData: null,
   exportMonth: null,
   justRegistered: false,
+  resetToken: null,
   busy: false,
 };
 
-let terrain = null;
+let bgField = null;
 let tour = null;
 
 /* ------------------------------------------------------------------ API */
@@ -204,7 +217,7 @@ function applyTheme(pref) {
   document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
   $('meta[name="theme-color"]')?.setAttribute("content", dark ? "#1d1916" : "#f6f1e9");
   $$("#themeSeg button").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.themeVal === pref)));
-  terrain?.refreshColors();
+  bgField?.refreshColors();
   if (state.summary) renderCharts();
 }
 darkQuery.addEventListener?.("change", () => { if (themePref() === "system") applyTheme("system"); });
@@ -256,7 +269,7 @@ function showAuth() {
   $("#appPage").hidden = true;
   $("#adminPage").hidden = true;
   $("#welcome").hidden = true;
-  terrain?.stop();
+  bgField?.stop();
   tour?.end();
   closeUserMenu();
   document.title = "TradeDesk · Sign in";
@@ -267,14 +280,14 @@ function showApp() {
   $("#authPage").hidden = true;
   $("#adminPage").hidden = true;
   $("#appPage").hidden = false;
-  terrain?.start();
+  bgField?.start();
 }
 
 function showAdmin() {
   $("#authPage").hidden = true;
   $("#appPage").hidden = true;
   $("#adminPage").hidden = false;
-  terrain?.start();
+  bgField?.start();
   document.title = "TradeDesk · Admin";
 }
 
@@ -288,15 +301,18 @@ function setAuthMode(mode) {
   $("#loginForm").hidden = mode !== "login";
   $("#registerForm").hidden = mode !== "register";
   $("#adminLoginForm").hidden = mode !== "admin";
+  $("#resetForm").hidden = mode !== "reset";
+  $(".auth-tabs").hidden = mode === "reset";
   const copy = {
     login: ["Welcome back", "Sign in to your trading workspace."],
     register: ["Create your account", "It takes a minute. Your data stays private to you."],
     admin: ["Admin console", "Administrators only."],
+    reset: ["Choose a new password", "Pick something you haven’t used before. You’ll sign in with it next."],
   }[mode];
   $("#authHeading").textContent = copy[0];
   $("#authSub").textContent = copy[1];
   $$("#authPage .form-error").forEach((e) => (e.hidden = true));
-  const first = $(`#${mode === "login" ? "loginForm" : mode === "register" ? "registerForm" : "adminLoginForm"} input`);
+  const first = $(`#${{ login: "loginForm", register: "registerForm", admin: "adminLoginForm", reset: "resetForm" }[mode]} input`);
   first?.focus({ preventScroll: true });
 }
 
@@ -416,6 +432,38 @@ async function onForgot(e) {
   }
 }
 
+function resetTokenFromHash() {
+  const m = location.hash.match(/^#\/reset\?token=([\w-]{20,200})/);
+  return m ? m[1] : null;
+}
+
+function clearResetHash() {
+  state.resetToken = null;
+  history.replaceState(null, "", location.pathname + location.search);
+}
+
+async function onReset(e) {
+  e.preventDefault();
+  const form = e.target;
+  const btn = $("button[type=submit]", form);
+  const pw = $("#resetPassword").value, pw2 = $("#resetPassword2").value;
+  if (pw.length < 8) return formError(form, "Password must be at least 8 characters.");
+  if (pw !== pw2) return formError(form, "The two passwords don’t match.");
+  formError(form, "");
+  setLoading(btn, true, "Saving…");
+  try {
+    const res = await api("/api/auth/reset-password", { method: "POST", body: { token: state.resetToken, password: pw }, noAuth: true, timeout: 70000 });
+    form.reset();
+    clearResetHash();
+    setAuthMode("login");
+    toast(res.message || "Password changed. Please sign in.", "success", 7000);
+  } catch (err) {
+    formError(form, err.message);
+  } finally {
+    setLoading(btn, false);
+  }
+}
+
 async function logout() {
   try { await api("/api/auth/logout", { method: "POST", quiet401: true }); } catch {}
   clearSession();
@@ -518,7 +566,7 @@ function renderUserChrome() {
 
 function updateGreeting() {
   const now = new Date();
-  $("#greeting").innerHTML = `${greetingWord()}, <em>${esc(firstName(state.user))}</em>`;
+  setInteractiveHTML($("#greeting"), `${greetingWord()}, <em>${esc(firstName(state.user))}</em>`);
   $("#todayLabel").textContent = now.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
   $("#clock").textContent = now.toLocaleString("en-GB", { weekday: "short", day: "numeric", month: "short" }) + " · " +
     now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
@@ -646,7 +694,7 @@ function moneyFigure(v, cur) {
 function renderHero() {
   const s = state.summary, t = s.totals || {}, b = s.base_currency || "MYR";
   $("#heroBase").textContent = b;
-  $("#heroNav").innerHTML = moneyFigure(t.equity, b);
+  countTo($("#heroNav"), num(t.equity), (v) => moneyFigure(v, b), 1100);
   const ret = num(t.total_return);
   $("#heroDelta").innerHTML = `
     <span class="chip ${ret >= 0 ? "chip--up" : "chip--down"}">${icon(ret >= 0 ? "up" : "down", "ico--sm")}${pct(t.total_return_pct)}</span>
@@ -656,13 +704,25 @@ function renderHero() {
   $("#heroDeposits").textContent = fmt(t.net_deposits, b);
 }
 
-function kpiTile({ label, value, sub, ico, tone = "", meter = null, valueCls = "" }) {
+const lastCounts = new Map();
+function kpiTile({ label, value, sub, ico, tone = "", meter = null, valueCls = "", count = null }) {
+  const data = count ? ` data-count="${num(count.v)}" data-kind="${count.kind}" data-cur="${esc(count.cur || "")}" data-key="${esc(label)}"` : "";
   return `<article class="kpi glass reveal">
     <div class="kpi-top"><span class="label">${label}</span><span class="kpi-icon ${tone}">${icon(ico)}</span></div>
-    <div class="kpi-value money ${valueCls}">${value}</div>
+    <div class="kpi-value money ${valueCls}"${data}>${value}</div>
     <div class="kpi-sub">${sub}</div>
     ${meter !== null ? `<div class="kpi-meter"><span style="--v:${Math.max(0, Math.min(1, meter)).toFixed(3)}"></span></div>` : ""}
   </article>`;
+}
+
+function runCountUps(root) {
+  $$("[data-count]", root).forEach((el) => {
+    const key = el.dataset.key, cur = el.dataset.cur || null, kind = el.dataset.kind, to = Number(el.dataset.count);
+    el._val = lastCounts.has(key) ? lastCounts.get(key) : 0;
+    lastCounts.set(key, to);
+    const render = kind === "signed" ? (v) => signed(v, cur) : kind === "pct" ? (v) => `${num(v).toFixed(1)}%` : kind === "int" ? (v) => Math.round(v).toLocaleString("en-US") : (v) => fmt(v, cur);
+    countTo(el, to, render);
+  });
 }
 
 function renderKpis() {
@@ -670,11 +730,12 @@ function renderKpis() {
   const realised = num(t.realized) + num(t.dividends);
   const eq = num(t.equity);
   $("#kpiGrid").innerHTML = [
-    kpiTile({ label: "Net return", value: signed(t.total_return, b), valueCls: cls(t.total_return), sub: `${pct(t.total_return_pct)} vs capital`, ico: "trend" }),
-    kpiTile({ label: "Realised + dividends", value: signed(realised, b), valueCls: cls(realised), sub: `Dividends ${fmt(t.dividends, b)} · Fees ${fmt(t.fees, b)}`, ico: "layers", tone: "kpi-icon--sage" }),
-    kpiTile({ label: "Win rate", value: `${num(t.win_rate).toFixed(1)}%`, sub: `${num(t.closed_trades)} closed · PF ${esc(t.profit_factor ?? 0)}`, ico: "target", meter: num(t.win_rate) / 100 }),
-    kpiTile({ label: "Cash reserve", value: fmt(t.cash, b), sub: `${eq > 0 ? ((num(t.cash) / eq) * 100).toFixed(1) : "0.0"}% of NAV`, ico: "wallet", tone: "kpi-icon--sage", meter: eq > 0 ? num(t.cash) / eq : 0 }),
+    kpiTile({ label: "Net return", value: signed(t.total_return, b), valueCls: cls(t.total_return), sub: `${pct(t.total_return_pct)} vs capital`, ico: "trend", count: { v: t.total_return, kind: "signed", cur: b } }),
+    kpiTile({ label: "Realised + dividends", value: signed(realised, b), valueCls: cls(realised), sub: `Dividends ${fmt(t.dividends, b)} · Fees ${fmt(t.fees, b)}`, ico: "layers", tone: "kpi-icon--sage", count: { v: realised, kind: "signed", cur: b } }),
+    kpiTile({ label: "Win rate", value: `${num(t.win_rate).toFixed(1)}%`, sub: `${num(t.closed_trades)} closed · PF ${esc(t.profit_factor ?? 0)}`, ico: "target", meter: num(t.win_rate) / 100, count: { v: t.win_rate, kind: "pct" } }),
+    kpiTile({ label: "Cash reserve", value: fmt(t.cash, b), sub: `${eq > 0 ? ((num(t.cash) / eq) * 100).toFixed(1) : "0.0"}% of NAV`, ico: "wallet", tone: "kpi-icon--sage", meter: eq > 0 ? num(t.cash) / eq : 0, count: { v: t.cash, kind: "money", cur: b } }),
   ].join("");
+  runCountUps($("#kpiGrid"));
 }
 
 function accountNavSeries(acc) {
@@ -686,7 +747,12 @@ function accountNavSeries(acc) {
 }
 
 function sparkSvg(values, color, id) {
-  const W = 120, H = 46, px = 3, py = 5;
+  const W = 300, H = 64, px = 4, py = 8;
+  if (!values.length || values.every((v) => v === values[0])) {
+    // No history yet: a quiet dashed baseline instead of a solid band.
+    return `<svg class="acc-spark acc-spark--flat" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
+      <line x1="${px}" y1="${H / 2}" x2="${W - px}" y2="${H / 2}" stroke="${color}" stroke-width="2" stroke-dasharray="4 6" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg>`;
+  }
   const v = values.length >= 2 ? values : [values[0] || 0, values[0] || 0];
   const min = Math.min(...v), max = Math.max(...v), span = max - min || 1;
   const pts = v.map((y, i) => [px + (i / (v.length - 1)) * (W - px * 2), max === min ? H / 2 : py + (1 - (y - min) / span) * (H - py * 2)]);
@@ -696,11 +762,10 @@ function sparkSvg(values, color, id) {
     d += ` C${cx.toFixed(1)} ${y0.toFixed(1)},${cx.toFixed(1)} ${y1.toFixed(1)},${x1.toFixed(1)} ${y1.toFixed(1)}`;
   }
   const last = pts[pts.length - 1];
-  return `<svg class="acc-spark" viewBox="0 0 ${W} ${H}" aria-hidden="true">
+  return `<svg class="acc-spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
     <defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${color}" stop-opacity=".3"/><stop offset="1" stop-color="${color}" stop-opacity="0"/></linearGradient></defs>
     <path d="${d} L${last[0].toFixed(1)} ${H} L${pts[0][0].toFixed(1)} ${H}Z" fill="url(#${id})"/>
-    <path d="${d}" fill="none" stroke="${color}" stroke-width="2.2" stroke-linecap="round"/>
-    <circle cx="${last[0].toFixed(1)}" cy="${last[1].toFixed(1)}" r="3.4" fill="${color}"/>
+    <path d="${d}" fill="none" stroke="${color}" stroke-width="2.4" stroke-linecap="round" vector-effect="non-scaling-stroke"/>
   </svg>`;
 }
 
@@ -709,46 +774,65 @@ function maskAccount(no) {
   return s.length > 4 ? `•••• ${s.slice(-4)}` : s;
 }
 
+function accountLogo(a, color) {
+  const brand = brandOf(a);
+  if (brand) {
+    return `<span class="acc-logo ${brand.full ? "acc-logo--full" : "acc-logo--pad"}"><img src="${brand.logo}" alt="${esc(brand.label)} logo" width="48" height="48" loading="lazy" /></span>`;
+  }
+  return `<span class="acc-logo acc-logo--mono" style="background:${color}" aria-hidden="true">${esc((a.name || "?").trim().charAt(0).toUpperCase())}</span>`;
+}
+
 function renderAccounts() {
   const s = state.summary;
   const base = s.base_currency || "MYR";
   const cards = (s.accounts || []).map((a, idx) => {
-    const color = earthColor(a.color);
+    const color = accountColor(a);
+    const brand = brandOf(a);
     const curs = a.currencies_list || [a.currency];
     const st = a.latest_statement;
     const wr = a.win_rate === null || a.win_rate === undefined ? "—" : `${num(a.win_rate).toFixed(0)}%`;
+    const ret = num(a.total_return);
     return `<article class="acc glass" style="--acc:${color}">
+      ${brand ? `<img class="acc-watermark" src="${brand.logo}" alt="" aria-hidden="true" />` : ""}
       <div class="acc-head">
-        <div class="acc-name"><span class="acc-badge" aria-hidden="true">${esc((a.name || "?").trim().charAt(0).toUpperCase())}</span>
-          <div><div>${esc(a.name)}</div><div class="acc-sub">${a.account_number ? esc(maskAccount(a.account_number)) : esc(String(a.broker || "").toUpperCase())}</div></div></div>
-        <div class="acc-ccys">${curs.map((c) => `<span class="chip ${c === a.currency ? "primary" : ""}">${esc(c)}</span>`).join("")}</div>
-      </div>
-      <div class="acc-row">
-        <div>
-          <div class="acc-nav money">${fmt(a.equity, a.currency)}</div>
-          <div class="acc-ret"><span class="${cls(a.total_return)} money">${signed(a.total_return, a.currency)}</span> (${pct(a.total_return_pct)})${a.currency !== base ? ` · <span class="money">${fmt(a.equity_base, base)}</span>` : ""}</div>
+        ${accountLogo(a, color)}
+        <div class="acc-title">
+          <div class="acc-name">${esc(a.name)}</div>
+          <div class="acc-sub"><span>${esc(brand?.label || String(a.broker || "Broker").replace(/^./, (c) => c.toUpperCase()))}</span>${a.account_number ? `<i class="dotsep"></i><span>${esc(maskAccount(a.account_number))}</span>` : ""}</div>
         </div>
-        ${sparkSvg(accountNavSeries(a), color, `sp${idx}`)}
+        ${a.url ? `<a class="btn btn--ghost btn--sm acc-open" href="${esc(a.url)}" target="_blank" rel="noopener" aria-label="Open ${esc(a.name)} website">${icon("external")}<span class="hide-xs">Open</span></a>` : ""}
       </div>
+      <div class="acc-balance">
+        <div class="acc-nav money">${fmt(a.equity, a.currency)}</div>
+        <div class="acc-ret">
+          <span class="chip ${ret >= 0 ? "chip--up" : "chip--down"}">${icon(ret >= 0 ? "up" : "down", "ico--sm")}${pct(a.total_return_pct)}</span>
+          <span class="money ${cls(ret)}">${signed(ret, a.currency)}</span>
+          ${a.currency !== base ? `<span>· <span class="money">${fmt(a.equity_base, base)}</span></span>` : ""}
+        </div>
+      </div>
+      ${sparkSvg(accountNavSeries(a), color, `sp${idx}`)}
       <div class="acc-metrics">
         <div><span>Portfolio</span><b class="money">${fmt(a.market_value, a.currency)}</b></div>
         <div><span>Cash</span><b class="money">${fmt(a.cash, a.currency)}</b></div>
         <div><span>Win rate</span><b>${wr} <small class="muted">(${num(a.closed_trades)})</small></b></div>
       </div>
-      ${st ? `<div class="acc-stmt">Latest statement <b>${esc(st.period)}</b> · <span class="money ${cls(st.nav_change)}">${signed(st.nav_change, a.currency)}</span></div>` : `<div class="acc-stmt">No statement yet. Drop one in to sync this account.</div>`}
-      <div class="acc-actions">
-        ${a.url ? `<a class="icon-btn icon-btn--sm" href="${esc(a.url)}" target="_blank" rel="noopener" aria-label="Open ${esc(a.name)} website" data-tip="Open broker">${icon("external")}</a>` : ""}
-        <button type="button" class="icon-btn icon-btn--sm" data-acc-upload="${esc(a.id)}" aria-label="Upload statement to ${esc(a.name)}" data-tip="Upload statement">${icon("upload")}</button>
-        <button type="button" class="icon-btn icon-btn--sm" data-acc-log="${esc(a.id)}" aria-label="Log entry for ${esc(a.name)}" data-tip="Log entry">${icon("plus")}</button>
-        <span class="grow"></span>
-        <button type="button" class="icon-btn icon-btn--sm" data-acc-edit="${esc(a.id)}" aria-label="Edit ${esc(a.name)}" data-tip="Edit">${icon("edit")}</button>
-        <button type="button" class="icon-btn icon-btn--sm icon-btn--danger" data-acc-del="${esc(a.id)}" aria-label="Delete ${esc(a.name)}" data-tip="Delete">${icon("trash")}</button>
+      <div class="acc-foot">
+        <div class="acc-ccys">${curs.map((c) => `<span class="chip ${c === a.currency ? "primary" : ""}">${esc(c)}</span>`).join("")}</div>
+        <div class="acc-stmt">${icon("file", "ico--sm")}${st ? `<span>Latest statement <b>${esc(st.period)}</b> · <span class="money ${cls(st.nav_change)}">${signed(st.nav_change, a.currency)}</span></span>` : `<span>No statement yet. Drop one in to sync.</span>`}</div>
+        <div class="acc-actions">
+          <button type="button" class="icon-btn icon-btn--sm" data-acc-upload="${esc(a.id)}" aria-label="Upload statement to ${esc(a.name)}" data-tip="Upload statement">${icon("upload")}</button>
+          <button type="button" class="icon-btn icon-btn--sm" data-acc-log="${esc(a.id)}" aria-label="Log entry for ${esc(a.name)}" data-tip="Log entry">${icon("plus")}</button>
+          <span class="grow"></span>
+          <button type="button" class="icon-btn icon-btn--sm" data-acc-edit="${esc(a.id)}" aria-label="Edit ${esc(a.name)}" data-tip="Edit">${icon("edit")}</button>
+          <button type="button" class="icon-btn icon-btn--sm icon-btn--danger" data-acc-del="${esc(a.id)}" aria-label="Delete ${esc(a.name)}" data-tip="Delete">${icon("trash")}</button>
+        </div>
       </div>
     </article>`;
   }).join("");
   $("#accountsGrid").innerHTML = cards + `
     <button type="button" class="acc-add" data-action="add-account">
       <span class="plus">${icon("plus")}</span><strong>Add an account</strong><span>Moomoo, Mplus, Webull or any broker</span>
+      <span class="acc-add-brands" aria-hidden="true">${Object.values(BRANDS).map((b) => `<img src="${b.logo}" alt="" />`).join("")}</span>
     </button>`;
 }
 
@@ -961,7 +1045,7 @@ function chartTheme() {
 }
 function setupChartDefaults() {
   if (!window.Chart) return;
-  Chart.defaults.font.family = "Manrope, system-ui, sans-serif";
+  Chart.defaults.font.family = "\"Plus Jakarta Sans\", system-ui, sans-serif";
   Chart.defaults.font.size = 12;
   Chart.defaults.plugins.legend.labels.usePointStyle = true;
   Chart.defaults.plugins.legend.labels.pointStyle = "rectRounded";
@@ -1001,6 +1085,7 @@ function renderCharts() {
   if (!state.summary || !window.Chart) return;
   const th = chartTheme();
   const pal = chartPalette();
+  const area = cssVar("--chart-area");
   const base = state.summary.base_currency || "MYR";
   const monthly = state.periods?.monthly || [];
 
@@ -1014,7 +1099,7 @@ function renderCharts() {
   if (heroCanvas && heroCanvas.offsetParent !== null) {
     drawChart("heroSpark", {
       type: "line",
-      data: { labels: series.map((_, i) => monthly[i]?.period || ""), datasets: [{ data: series, borderColor: pal[0], borderWidth: 2.4, pointRadius: 0, pointHoverRadius: 4, tension: 0.4, fill: true, backgroundColor: (c) => gradient(c.chart.ctx, pal[0], 92) }] },
+      data: { labels: series.map((_, i) => monthly[i]?.period || ""), datasets: [{ data: series, borderColor: area, borderWidth: 2.4, pointRadius: 0, pointHoverRadius: 4, tension: 0.4, fill: true, backgroundColor: (c) => gradient(c.chart.ctx, area, 92) }] },
       options: { plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => fmt(c.parsed.y, base) } } }, scales: { x: { display: false }, y: { display: false } } },
     });
   }
@@ -1025,8 +1110,8 @@ function renderCharts() {
     data: {
       labels: list.map((x) => x.period),
       datasets: [
-        { type: "line", label: "Ending NAV", data: list.map((x) => x.ending_nav), borderColor: pal[0], backgroundColor: (c) => gradient(c.chart.ctx, pal[0], 300), fill: true, tension: 0.35, borderWidth: 2.5, pointRadius: 3, pointBackgroundColor: pal[0], yAxisID: "y", order: 1 },
-        { type: "bar", label: "Realised P&L + div", data: list.map((x) => x.net_pnl), backgroundColor: list.map((x) => (num(x.net_pnl) >= 0 ? pal[1] : cssVar("--down"))), borderRadius: 6, maxBarThickness: 28, yAxisID: "y1", order: 2 },
+        { type: "line", label: "Ending NAV", data: list.map((x) => x.ending_nav), borderColor: pal[0], backgroundColor: (c) => gradient(c.chart.ctx, area, 300), fill: true, tension: 0.35, borderWidth: 2.5, pointRadius: 3, pointBackgroundColor: area, yAxisID: "y", order: 1 },
+        { type: "bar", label: "Realised P&L + div", data: list.map((x) => x.net_pnl), backgroundColor: list.map((x) => (num(x.net_pnl) >= 0 ? pal[2] : cssVar("--down"))), borderRadius: 6, maxBarThickness: 28, yAxisID: "y1", order: 2 },
       ],
     },
     options: {
@@ -1085,10 +1170,11 @@ async function renderPerformance() {
   const base = periods?.base_currency || state.summary.base_currency || "MYR";
   const th = chartTheme();
   const pal = chartPalette();
+  const area = cssVar("--chart-area");
   $("#periodTableTitle").textContent = { monthly: "Monthly breakdown", quarterly: "Quarterly breakdown", yearly: "Yearly breakdown" }[state.detailPeriod];
   drawChart("periodPnlChart", {
     type: "bar",
-    data: { labels: list.map((x) => x.period), datasets: [{ label: "Realised P&L + dividends", data: list.map((x) => x.net_pnl), backgroundColor: list.map((x) => (num(x.net_pnl) >= 0 ? pal[1] : cssVar("--down"))), borderRadius: 6, maxBarThickness: 34 }] },
+    data: { labels: list.map((x) => x.period), datasets: [{ label: "Realised P&L + dividends", data: list.map((x) => x.net_pnl), backgroundColor: list.map((x) => (num(x.net_pnl) >= 0 ? pal[2] : cssVar("--down"))), borderRadius: 6, maxBarThickness: 34 }] },
     options: {
       plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => fmt(c.parsed.y, base) } } },
       scales: { x: { ticks: { color: th.tick }, grid: { display: false }, border: { display: false } }, y: { ticks: { color: th.tick, callback: (v) => fmt(v, base, 0) }, grid: { color: th.grid }, border: { display: false } } },
@@ -1099,8 +1185,8 @@ async function renderPerformance() {
     data: {
       labels: list.map((x) => x.period),
       datasets: [
-        { label: "Starting NAV", data: list.map((x) => x.starting_nav), borderColor: pal[2], borderDash: [5, 5], borderWidth: 2, pointRadius: 2, tension: 0.3 },
-        { label: "Ending NAV", data: list.map((x) => x.ending_nav), borderColor: pal[0], backgroundColor: (c) => gradient(c.chart.ctx, pal[0]), fill: true, borderWidth: 2.5, pointRadius: 3, tension: 0.3 },
+        { label: "Starting NAV", data: list.map((x) => x.starting_nav), borderColor: pal[6], borderDash: [5, 5], borderWidth: 2, pointRadius: 2, tension: 0.3 },
+        { label: "Ending NAV", data: list.map((x) => x.ending_nav), borderColor: pal[0], backgroundColor: (c) => gradient(c.chart.ctx, area), fill: true, borderWidth: 2.5, pointRadius: 3, tension: 0.3 },
       ],
     },
     options: {
@@ -1119,16 +1205,16 @@ async function renderPerformance() {
 
 /* ------------------------------------------------------------------ dialogs: account */
 const BROKER_DEFAULTS = {
-  moomoo: { name: "Moomoo", url: "https://www.moomoo.com/my/", color: "#b4532a", curs: ["MYR", "USD", "SGD", "HKD", "CNH"] },
-  mplus: { name: "Mplus", url: "https://www.mplusonline.com.my/", color: "#56707a", curs: ["MYR", "USD"] },
-  webull: { name: "Webull", url: "https://app.webull.com/", color: "#5f7155", curs: ["USD", "MYR"] },
-  other: { name: "", url: "", color: "#c9973f", curs: ["MYR", "USD"] },
+  moomoo: { name: "Moomoo", url: "https://www.moomoo.com/my/", color: "#f86800", curs: ["MYR", "USD", "SGD", "HKD", "CNH"] },
+  mplus: { name: "Mplus", url: "https://www.mplusonline.com.my/", color: "#e8231b", curs: ["MYR", "USD"] },
+  webull: { name: "Webull", url: "https://app.webull.com/", color: "#2860f0", curs: ["USD", "MYR"] },
+  other: { name: "", url: "", color: "#0f1013", curs: ["MYR", "USD"] },
 };
 function renderSwatches(selected) {
   const box = $("#accSwatches");
   const sel = earthColor(selected);
   $("#accColor").value = sel;
-  box.innerHTML = EARTH.map((e) => `<button type="button" class="swatch" role="radio" aria-checked="${e.c === sel}" aria-label="${e.n}" data-c="${e.c}" style="background:${e.c}"></button>`).join("");
+  box.innerHTML = PALETTE.map((e) => `<button type="button" class="swatch" role="radio" aria-checked="${e.c === sel}" aria-label="${e.n}" data-c="${e.c}" style="background:${e.c}"></button>`).join("");
   $$(".swatch", box).forEach((b) => (b.onclick = () => {
     $("#accColor").value = b.dataset.c;
     $$(".swatch", box).forEach((x) => x.setAttribute("aria-checked", String(x === b)));
@@ -1602,6 +1688,18 @@ function bindEvents() {
     $("#forgotDlg").showModal();
   };
   $("#forgotForm").addEventListener("submit", onForgot);
+  $("#resetForm").addEventListener("submit", onReset);
+  $("#resetCancel").onclick = () => { clearResetHash(); setAuthMode("login"); };
+  // Gentle parallax on the sign-in photo (pointer devices only).
+  const photo = $(".auth-photo img");
+  if (!matchMedia("(pointer: coarse)").matches) {
+    $("#authPage").addEventListener("pointermove", (e) => {
+      if (reduceMotion()) return;
+      const x = (e.clientX / innerWidth - 0.5) * -14, y = (e.clientY / innerHeight - 0.5) * -10;
+      photo.style.setProperty("--px", `${x.toFixed(1)}px`);
+      photo.style.setProperty("--py", `${y.toFixed(1)}px`);
+    });
+  }
   bindPwEyes();
 
   // Dialog close buttons
@@ -1616,7 +1714,11 @@ function bindEvents() {
   $("#parsingDlg").addEventListener("cancel", (e) => e.preventDefault());
 
   // Nav
-  window.addEventListener("hashchange", () => { if (!$("#appPage").hidden) navigateFromHash(); });
+  window.addEventListener("hashchange", () => {
+    const token = resetTokenFromHash();
+    if (token) { state.resetToken = token; showAuth(); setAuthMode("reset"); return; }
+    if (!$("#appPage").hidden) navigateFromHash();
+  });
   window.addEventListener("resize", () => requestAnimationFrame(moveNavPill));
   document.fonts?.ready.then(moveNavPill);
 
@@ -1780,7 +1882,7 @@ async function boot() {
   $$("[data-version]").forEach((el) => (el.textContent = `v${APP_VERSION}`));
   $("#year").textContent = new Date().getFullYear();
   setupChartDefaults();
-  terrain = createTerrain($("#terrain"));
+  bgField = createField($("#fieldBg"));
   tour = createTour({
     steps: TOUR_STEPS,
     onFinish: () => { if (state.user?.id) store.set(`td_tour_done:${state.user.id}`, "1"); },
@@ -1788,9 +1890,18 @@ async function boot() {
   applyTheme(themePref());
   renderAvatarPicker($("#registerAvatarPicker"), $("#registerAvatarInput"), "av-1");
   bindEvents();
+  $$("[data-itext]").forEach(interactive);
   updateGreeting();
   setInterval(updateGreeting, 15000);
   console.info(`TradeDesk v${APP_VERSION}`);
+
+  const resetToken = resetTokenFromHash();
+  if (resetToken) {
+    state.resetToken = resetToken;
+    showAuth();
+    setAuthMode("reset");
+    return;
+  }
 
   const saved = loadSession();
   if (saved?.token && API_CONFIGURED) {
