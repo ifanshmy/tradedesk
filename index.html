@@ -755,6 +755,21 @@
     </div>
   </dialog>
 
+  <dialog id="verifyDlg" class="dlg dlg--wide" aria-labelledby="verifyTitle">
+    <div class="dlg-body">
+      <div>
+        <p class="eyebrow">Check before saving</p>
+        <h2 class="dlg-title" id="verifyTitle">Statement verification</h2>
+        <p class="dlg-lede" style="margin-top:4px">We checked every number in your statement. Nothing changes on your dashboard until you apply.</p>
+      </div>
+      <div id="verifyBody" class="verify"></div>
+      <div class="dlg-actions">
+        <button type="button" class="btn btn--ghost" id="verifyCancel">Cancel</button>
+        <button type="button" class="btn btn--primary" id="verifyApply"><svg class="ico"><use href="#i-check"/></svg><span>Apply to dashboard</span></button>
+      </div>
+    </div>
+  </dialog>
+
   <dialog id="accentDlg" class="dlg dlg--wide" aria-labelledby="accentTitle">
     <div class="dlg-body">
       <div>

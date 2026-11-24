@@ -1664,7 +1664,91 @@ async function handleFiles(fileList, accountId) {
     if (answer.skip) files = files.filter((f) => !locked.includes(f));
     else passwords = answer.passwords;
   }
-  await uploadBatch(files, accountId, passwords);
+  const confirmed = await previewAndConfirm(files, accountId, passwords);
+  if (confirmed) await uploadBatch(confirmed.files, accountId, confirmed.passwords);
+}
+
+/** Verify statements on the server (nothing saved), show the report, resolve with what to apply or null. */
+async function previewAndConfirm(files, accountId, passwords, round = 0) {
+  if (!files.length) return null;
+  const dlg = $("#parsingDlg");
+  $("#parsingTitle").textContent = "Verifying your statement";
+  $("#parsingStatus").textContent = `Checking every figure in ${files.length} file${files.length > 1 ? "s" : ""} before anything is saved.`;
+  dlg.showModal();
+  const fd = new FormData();
+  fd.append("account_id", accountId || "");
+  fd.append("passwords", JSON.stringify(passwords || {}));
+  files.forEach((f) => fd.append("files", f, f.name));
+  let res;
+  try {
+    res = await api("/api/statements/preview", { method: "POST", body: fd, timeout: 120000 });
+  } catch (err) {
+    dlg.close();
+    $("#parsingTitle").textContent = "Reading your statement";
+    if (err.status === 404) return { files, passwords }; // older server without preview: upload directly
+    (err.data?.errors || []).forEach((e) => toast(`${e.filename}: ${e.error}`, "error", 8000));
+    if (!err.data?.errors?.length) toast(err.message, "error", 8000);
+    return null;
+  }
+  dlg.close();
+  $("#parsingTitle").textContent = "Reading your statement";
+  (res.errors || []).forEach((e) => toast(`${e.filename}: ${e.error}`, "error", 8000));
+  if (res.locked?.length && round < 5) {
+    const byName = new Map(files.map((f) => [f.name, f]));
+    const entries = res.locked.map((l) => ({ file: byName.get(l.filename), reason: l.reason })).filter((e) => e.file);
+    const answer = await askPasswords(entries);
+    if (!answer) return null;
+    if (answer.skip) files = files.filter((f) => !entries.some((e) => e.file === f));
+    else passwords = { ...passwords, ...answer.passwords };
+    return previewAndConfirm(files, accountId, passwords, round + 1);
+  }
+  if (!res.files?.length) return null;
+  const ok = await showVerification(res);
+  if (!ok) { toast("Nothing was changed.", "info", 3000); return null; }
+  const keep = new Set(res.files.map((f) => f.filename));
+  return { files: files.filter((f) => keep.has(f.name)), passwords };
+}
+
+function showVerification(res) {
+  const cur = res.currency || "MYR";
+  const all = [...res.files.flatMap((f) => f.checks), ...(res.after_checks || [])];
+  const fails = all.filter((c) => c.status === "fail").length;
+  const warns = all.filter((c) => c.status === "warn").length;
+  const level = fails ? "fail" : warns ? "warn" : "pass";
+  const banner = { pass: [icon("check"), `All ${all.filter((c) => c.status === "pass").length} checks passed. The numbers reconcile.`],
+    warn: [icon("alert"), `${warns} thing${warns > 1 ? "s" : ""} to look at. Read the notes below before applying.`],
+    fail: [icon("x"), `${fails} check${fails > 1 ? "s" : ""} failed. The statement may have been read incorrectly.`] }[level];
+  const ic = { pass: "check", warn: "alert", fail: "x", info: "info" };
+  const checksHtml = (list) => `<ul class="v-checks">${list.map((c) => `<li class="${c.status}">${icon(ic[c.status])}<div>${esc(c.label)}<small>${esc(c.detail)}</small></div></li>`).join("")}</ul>`;
+  const fig = (label, v, c) => `<div><span>${label}</span><b>${typeof v === "number" ? fmt(v, c) : esc(v)}</b></div>`;
+  const filesHtml = res.files.map((f) => {
+    const g = f.figures, c = f.currency || cur;
+    return `<section class="v-file">
+      <div class="v-file-head"><span><b>${esc(f.period || f.month || f.filename)}</b> · ${esc(String(f.broker || "").replace(/^./, (x) => x.toUpperCase()))}</span><span class="muted">${esc(f.filename)} → ${esc(f.account_name)}</span></div>
+      <div class="v-figs">${fig("Start NAV", g.starting_nav, c)}${fig("End NAV", g.ending_nav, c)}${fig("Securities", g.portfolio_value, c)}${fig("Cash", g.cash_balance, c)}${fig("Deposits", g.deposits, c)}${fig("Withdrawals", g.withdrawals, c)}${fig("Dividends", g.dividends, c)}${fig("IPO applications", g.ipo, c)}${fig("Fees", g.fees, c)}${fig("Trades", String(g.trades))}</div>
+      ${checksHtml(f.checks)}
+    </section>`;
+  }).join("");
+  const rows = [["Net asset value", "equity"], ["Net deposits", "net_deposits"], ["Net return", "total_return"], ["Realised P&L", "realized"],
+    ["Dividends", "dividends"], ["Cash", "cash"], ["Securities", "market_value"], ["Win rate", "win_rate", "%"]];
+  const b = res.before || {}, a = res.after || {};
+  const tableHtml = `<section class="v-file"><div class="v-file-head"><b>Your dashboard after applying</b></div>
+    <table class="v-table"><thead><tr><th>Card</th><th>Now</th><th>After</th><th>Change</th></tr></thead><tbody>
+    ${rows.map(([label, k, unit]) => { const d = num(a[k]) - num(b[k]); const u = unit || cur;
+      return `<tr class="${Math.abs(d) > 0.004 ? "changed" : ""}"><td>${label}</td><td>${fmt(b[k], u)}</td><td>${fmt(a[k], u)}</td><td class="${cls(d)}">${Math.abs(d) > 0.004 ? (unit ? `${d > 0 ? "+" : ""}${d.toFixed(1)} pts` : signed(d, cur)) : "—"}</td></tr>`; }).join("")}
+    </tbody></table>${checksHtml(res.after_checks || [])}</section>`;
+  $("#verifyBody").innerHTML = `<div class="v-banner ${level}">${banner[0]}<span>${banner[1]}</span></div>${filesHtml}${tableHtml}`;
+  $("#verifyApply span").textContent = fails ? "Apply anyway" : "Apply to dashboard";
+  const dlg = $("#verifyDlg");
+  dlg.showModal();
+  if (level === "pass") sfx.success(); else sfx.error();
+  return new Promise((resolve) => {
+    let done = false;
+    const finish = (v) => { if (done) return; done = true; dlg.close(); resolve(v); };
+    $("#verifyApply").onclick = () => finish(true);
+    $("#verifyCancel").onclick = () => finish(false);
+    dlg.addEventListener("close", () => finish(false), { once: true });
+  });
 }
 
 async function uploadBatch(files, accountId, passwords, round = 0) {
