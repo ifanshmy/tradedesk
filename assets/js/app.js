@@ -6,6 +6,7 @@ import { createField } from "./field.js";
 import { interactive, setInteractiveHTML, countTo } from "./itext.js";
 import { sfx, isSoundEnabled, setSoundEnabled } from "./sound.js";
 import { createTour } from "./tour.js";
+import { initCursor, isCursorEnabled, setCursorEnabled } from "./cursor.js";
 
 /* ------------------------------------------------------------------ utils */
 const $ = (s, el = document) => el.querySelector(s);
@@ -50,9 +51,9 @@ const THEME_KEY = "td_theme_v3";
 const AVATARS = [
   { id: "av-1", label: "Racer" },
   { id: "av-2", label: "Cyclist" },
-  { id: "av-3", label: "Heritage" },
+  { id: "av-3", label: "Weaver" },
   { id: "av-4", label: "Rider" },
-  { id: "av-5", label: "Elder" },
+  { id: "av-5", label: "Atuk" },
   { id: "av-6", label: "Mentor" },
   { id: "av-7", label: "Officer" },
   { id: "av-8", label: "Shuttler" },
@@ -421,20 +422,29 @@ function setAuthMode(mode) {
   first?.focus({ preventScroll: true });
 }
 
-function renderAvatarPicker(container, input, selected) {
+const avatarLabel = (id) => (AVATARS.find((a) => a.id === resolveAvatar(id)) || AVATARS[0]).label;
+function renderAvatarPicker(container, input, selected, onName) {
   const sel = resolveAvatar(selected);
   input.value = sel;
   container.innerHTML = AVATARS.map((a) => `
-    <button type="button" class="avatar-opt" role="radio" aria-checked="${a.id === sel}" aria-label="${a.label}" data-av="${a.id}" tabindex="${a.id === sel ? 0 : -1}">
-      <img src="assets/img/avatars/${a.id}.webp" alt="" width="64" height="64" loading="lazy" />
-    </button>`).join("");
+    <div class="avatar-cell">
+      <button type="button" class="avatar-opt" role="radio" aria-checked="${a.id === sel}" aria-label="${a.label}" data-av="${a.id}" tabindex="${a.id === sel ? 0 : -1}">
+        <img src="assets/img/avatars/${a.id}.webp" alt="" width="64" height="64" loading="lazy" />
+      </button>
+      <span class="avatar-name">${a.label}</span>
+    </div>`).join("");
   const opts = $$(".avatar-opt", container);
+  const show = (id) => onName?.(avatarLabel(id));
+  show(sel);
   const choose = (btn, focus) => {
     input.value = btn.dataset.av;
     opts.forEach((o) => { const on = o === btn; o.setAttribute("aria-checked", String(on)); o.tabIndex = on ? 0 : -1; });
+    show(btn.dataset.av);
     if (focus) btn.focus();
   };
   opts.forEach((btn, i) => {
+    btn.onmouseenter = () => show(btn.dataset.av);
+    btn.onmouseleave = () => show(input.value);
     btn.onclick = () => choose(btn);
     btn.onkeydown = (e) => {
       const d = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
@@ -715,6 +725,84 @@ function switchView(view, { initial = false } = {}) {
     playReveal();
     if (!tour?.active) window.scrollTo({ top: 0, behavior: reduceMotion() ? "auto" : "smooth" });
   }
+}
+
+/* ------------------------------------------------------------------ floating tooltips */
+function initTooltips() {
+  const tip = document.createElement("div");
+  tip.className = "tip-layer";
+  tip.setAttribute("aria-hidden", "true");
+  document.body.append(tip);
+  let cur = null;
+  const place = () => {
+    if (!cur || !cur.isConnected) return hide();
+    const r = cur.getBoundingClientRect();
+    const w = tip.offsetWidth, h = tip.offsetHeight;
+    let top = r.bottom + 8;
+    if (top + h > innerHeight - 6) top = r.top - h - 8;
+    const left = Math.max(6, Math.min(innerWidth - w - 6, r.left + r.width / 2 - w / 2));
+    tip.style.left = `${left}px`;
+    tip.style.top = `${top}px`;
+  };
+  const show = (el) => {
+    const text = el.getAttribute("data-tip");
+    if (!text) return;
+    cur = el;
+    tip.textContent = text;
+    // Inside an open modal the tooltip must live in the dialog's top layer to be visible.
+    const host = el.closest("dialog[open]") || document.body;
+    if (tip.parentNode !== host) host.append(tip);
+    place();
+    tip.classList.add("on");
+  };
+  const hide = () => { cur = null; tip.classList.remove("on"); };
+  document.addEventListener("pointerover", (e) => {
+    if (e.pointerType === "touch") return;
+    const el = e.target.closest?.("[data-tip]");
+    if (el && el !== cur) show(el); else if (!el && cur) hide();
+  });
+  document.addEventListener("focusin", (e) => { const el = e.target.closest?.("[data-tip]"); if (el && el.matches(":focus-visible")) show(el); });
+  document.addEventListener("focusout", hide);
+  document.addEventListener("pointerdown", hide);
+  addEventListener("scroll", () => cur && place(), { passive: true, capture: true });
+}
+
+/* ------------------------------------------------------------------ scroll-driven motion */
+function initScrollFx() {
+  if (reduceMotion()) return;
+  const SEL = ".card, .kpi, .acc, .page-head, .admin-user, .goal-row, .tx-row, .empty";
+  const root = $("#main");
+  if (!root || !("IntersectionObserver" in window)) return;
+  const io = new IntersectionObserver((entries) => {
+    let n = 0;
+    for (const en of entries) {
+      const el = en.target;
+      if (en.isIntersecting) { el.style.setProperty("--sr-d", `${Math.min(n++, 6) * 60}ms`); el.classList.add("in-view"); }
+      else if (en.boundingClientRect.top > 0) { el.style.setProperty("--sr-d", "0ms"); el.classList.remove("in-view"); }
+    }
+  }, { rootMargin: "0px 0px -6% 0px", threshold: 0.08 });
+  const scan = () => $$(SEL, root).forEach((el) => {
+    if (el.dataset.sr) return;
+    el.dataset.sr = "1";
+    el.classList.add("sr");
+    io.observe(el);
+  });
+  let queued = false;
+  new MutationObserver(() => { if (!queued) { queued = true; requestAnimationFrame(() => { queued = false; scan(); }); } })
+    .observe(root, { childList: true, subtree: true });
+  scan();
+  const bar = document.createElement("div");
+  bar.className = "scroll-prog";
+  document.body.append(bar);
+  const prog = () => {
+    const max = document.documentElement.scrollHeight - innerHeight;
+    bar.style.setProperty("--p", max > 0 ? (scrollY / max).toFixed(4) : 0);
+    bar.style.display = state.mode === "user" && max > 40 ? "" : "none";
+  };
+  addEventListener("scroll", prog, { passive: true });
+  addEventListener("resize", prog);
+  new MutationObserver(prog).observe(root, { childList: true, subtree: true });
+  prog();
 }
 
 function playReveal() {
@@ -1516,8 +1604,31 @@ function openProfileDialog() {
   f.display_name.value = u.display_name || "";
   f.email.value = u.email || "";
   f.base_currency.value = u.base_currency || "MYR";
-  renderAvatarPicker($("#profileAvatarPicker"), $("#profileAvatarInput"), u.avatar);
+  renderAvatarPicker($("#profileAvatarPicker"), $("#profileAvatarInput"), u.avatar,
+    (name) => { $("#profileAvatarName").innerHTML = `· <b>${esc(name)}</b>`; });
+  const box = $("#deactivateBox");
+  box.hidden = !!u.is_admin;
+  box.open = false;
+  $("#deactPw").value = "";
   $("#profileDlg").showModal();
+}
+async function deactivateAccount() {
+  const f = $("#profileForm");
+  const pw = $("#deactPw").value;
+  if (!pw) { formError(f, "Enter your password to deactivate your account."); $("#deactPw").focus(); return; }
+  const ok = await confirmDialog({ title: "Deactivate your account?", body: "You’ll be signed out straight away and won’t be able to sign in until the administrator reactivates you. Your data is kept.", ok: "Deactivate" });
+  if (!ok) return;
+  const btn = $("#btnDeactivate");
+  setLoading(btn, true, "Deactivating…");
+  try {
+    await api("/api/users/me/deactivate", { method: "POST", body: { password: pw } });
+    $("#profileDlg").close();
+    clearSession();
+    showAuth();
+    setAuthMode("login");
+    toast("Your account is deactivated. Contact the administrator to reactivate it.", "info", 6000);
+  } catch (err) { formError(f, err.message); }
+  finally { setLoading(btn, false); }
 }
 async function saveProfile(e) {
   e.preventDefault();
@@ -1837,7 +1948,8 @@ async function loadAdmin() {
         <div><span>Last statement</span><b>${esc(u.last_statement_period || "—")}</b></div>
       </div>
       <div class="admin-user-foot">
-        ${u.is_admin ? `<span class="chip chip--accent">${icon("shield", "ico--sm")}Admin</span>` : `<span class="chip">${esc(u.base_currency || "MYR")}</span>`}
+        ${u.is_admin ? `<span class="chip chip--accent">${icon("shield", "ico--sm")}Admin</span>` : u.status === "deactivated" ? `<span class="chip chip--down">Deactivated</span>` : `<span class="chip">${esc(u.base_currency || "MYR")}</span>`}
+        ${u.status === "deactivated" ? `<button type="button" class="btn btn--ghost btn--sm" data-admin-react="${esc(u.id)}" data-name="${esc(u.display_name || u.username)}">Reactivate</button>` : ""}
         ${u.is_admin ? "" : `<button type="button" class="btn btn--danger-ghost btn--sm" data-admin-del="${esc(u.id)}" data-name="${esc(u.display_name || u.username)}">${icon("trash")}Remove</button>`}
       </div>
     </article>`).join("") : `<div class="empty">${icon("user")}<strong>No users yet</strong></div>`;
@@ -2058,6 +2170,18 @@ function bindEvents() {
     syncSound();
   };
 
+  // Cursor effect switch
+  const cursorSwitch = $("#cursorSwitch");
+  const syncCursor = () => cursorSwitch.setAttribute("aria-checked", String(isCursorEnabled()));
+  syncCursor();
+  cursorSwitch.onclick = (e) => {
+    e.stopPropagation();
+    setCursorEnabled(!isCursorEnabled());
+    sfx.toggle(isCursorEnabled());
+    syncCursor();
+  };
+  $("#btnDeactivate").onclick = deactivateAccount;
+
   // Feedback
   $("#menuFeedback").onclick = () => { closeUserMenu(); openFeedback(); };
   $("#feedbackForm").addEventListener("submit", sendFeedback);
@@ -2094,7 +2218,7 @@ function bindEvents() {
   // Sounds: button presses, tour steps, dialogs opening.
   document.addEventListener("click", (e) => {
     const el = e.target.closest("button, a.btn, .chip-check, [role=menuitem]");
-    if (!el || el.closest("#primaryNav") || el.matches("#soundSwitch, [data-accent-pick], .picker-opt, #accentConfirm, .star")) return;
+    if (!el || el.closest("#primaryNav") || el.matches("#soundSwitch, #cursorSwitch, [data-accent-pick], .picker-opt, #accentConfirm, .star")) return;
     if (el.matches("#tourNext, #tourBack")) sfx.step(); else sfx.tap();
   }, true);
   new MutationObserver((muts) => {
@@ -2216,6 +2340,9 @@ function bindEvents() {
       if (!ok) return;
       try { await api(`/api/admin/users/${encodeURIComponent(b.dataset.adminDel)}`, { method: "DELETE" }); toast("User removed", "success"); await loadAdmin(); }
       catch (err) { toast(err.message, "error"); }
+    } else if (b.dataset.adminReact) {
+      try { await api(`/api/admin/users/${encodeURIComponent(b.dataset.adminReact)}/reactivate`, { method: "POST" }); toast(`${b.dataset.name} reactivated`, "success"); await loadAdmin(); }
+      catch (err) { toast(err.message, "error"); }
     } else if (b.dataset.sugDel) {
       try { await api(`/api/admin/suggestions/${encodeURIComponent(b.dataset.sugDel)}`, { method: "DELETE" }); await loadAdmin(); }
       catch (err) { toast(err.message, "error"); }
@@ -2242,6 +2369,9 @@ async function boot() {
   applyTheme(themePref());
   renderAvatarPicker($("#registerAvatarPicker"), $("#registerAvatarInput"), "av-1");
   bindEvents();
+  initTooltips();
+  initScrollFx();
+  initCursor();
   $$("[data-itext]").forEach(interactive);
   renderMenuAccents();
   updateGreeting();

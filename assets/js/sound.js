@@ -18,12 +18,17 @@ function audio() {
     if (!C) return null;
     ctx = new C();
     master = ctx.createGain();
-    master.gain.value = 0.55;
-    master.connect(ctx.destination);
+    master.gain.value = 1.0;
+    // A gentle compressor lets the cues be louder without clipping when several overlap.
+    const comp = ctx.createDynamicsCompressor();
+    comp.threshold.value = -10; comp.knee.value = 8; comp.ratio.value = 4;
+    master.connect(comp).connect(ctx.destination);
   }
   if (ctx.state === "suspended") ctx.resume().catch(() => {});
   return ctx;
 }
+
+const BOOST = 2.4;
 
 /** One enveloped oscillator note. */
 function note({ freq, to = null, type = "sine", start = 0, dur = 0.14, vol = 0.07, attack = 0.006 }) {
@@ -36,7 +41,7 @@ function note({ freq, to = null, type = "sine", start = 0, dur = 0.14, vol = 0.0
   osc.frequency.setValueAtTime(freq, t0);
   if (to) osc.frequency.exponentialRampToValueAtTime(to, t0 + dur);
   g.gain.setValueAtTime(0.0001, t0);
-  g.gain.exponentialRampToValueAtTime(vol, t0 + attack);
+  g.gain.exponentialRampToValueAtTime(Math.min(vol * BOOST, 0.4), t0 + attack);
   g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
   osc.connect(g).connect(master);
   osc.start(t0);
@@ -61,7 +66,7 @@ function whoosh({ start = 0, dur = 0.18, vol = 0.05, from = 900, to = 2600 }) {
   f.frequency.exponentialRampToValueAtTime(to, t0 + dur);
   const g = a.createGain();
   g.gain.setValueAtTime(0.0001, t0);
-  g.gain.exponentialRampToValueAtTime(vol, t0 + 0.03);
+  g.gain.exponentialRampToValueAtTime(Math.min(vol * BOOST, 0.4), t0 + 0.03);
   g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
   src.connect(f).connect(g).connect(master);
   src.start(t0);

@@ -217,7 +217,10 @@ a { color: inherit; }
 .num, .money, .tbl td.r, .hero-figure, .kpi-value { font-variant-numeric: tabular-nums lining-nums; }
 
 /* Privacy blur */
-body.private .money { filter: blur(7px); user-select: none; transition: filter var(--t-med) var(--ease); }
+body.private .money { position: relative; color: transparent !important; text-shadow: none; user-select: none; white-space: nowrap; }
+body.private .money * { visibility: hidden; }
+body.private .money::after { content: "••••••"; visibility: visible; position: absolute; left: 0; top: 50%; transform: translateY(-50%); color: var(--muted); letter-spacing: 0.14em; font-weight: 800; pointer-events: none; }
+.acc-nav.money::after, .kpi .money::after { letter-spacing: 0.2em; }
 
 /* =============================== Background =============================== */
 .field-bg { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; opacity: 0; transition: opacity 900ms var(--ease); }
@@ -277,10 +280,9 @@ body.private .money { filter: blur(7px); user-select: none; transition: filter v
 .icon-btn--danger:hover { color: var(--down); background: var(--down-soft); }
 .link-btn { background: none; border: 0; padding: 0; color: var(--accent); font-weight: 700; font-size: var(--fs-sm); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: transparent; transition: text-decoration-color var(--t-fast) var(--ease); }
 .link-btn:hover { text-decoration-color: currentColor; }
-[data-tip]:hover::after, [data-tip]:focus-visible::after {
-  content: attr(data-tip); position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%);
-  background: var(--tooltip); color: var(--bg); font-size: var(--fs-xs); font-weight: 600; padding: 5px 9px; border-radius: 8px; white-space: nowrap; pointer-events: none; z-index: 5;
-}
+/* Tooltips float in their own layer (never clipped by a card); see initTooltips() in app.js. */
+.tip-layer { position: fixed; left: 0; top: 0; z-index: 90; background: var(--tooltip); color: var(--bg); font-size: var(--fs-xs); font-weight: 600; padding: 5px 9px; border-radius: 8px; white-space: nowrap; pointer-events: none; opacity: 0; transform: translateY(3px); transition: opacity 120ms var(--ease), transform 120ms var(--ease); }
+.tip-layer.on { opacity: 1; transform: none; }
 
 /* Segmented control */
 .seg { display: inline-flex; gap: 2px; padding: 3px; border-radius: var(--r-pill); background: var(--field); border: 1px solid var(--line); }
@@ -350,6 +352,18 @@ select { appearance: none; padding-right: 38px; background-image: url("data:imag
 .avatar-picker { display: grid; grid-template-columns: repeat(8, 1fr); gap: 8px; }
 .avatar-opt { position: relative; padding: 0; border: 2px solid transparent; border-radius: 16px; background: none; aspect-ratio: 1; overflow: hidden; transition: transform var(--t-fast) var(--ease-spring), border-color var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease); }
 .avatar-opt img { width: 100%; height: 100%; object-fit: cover; }
+.avatar-cell { display: grid; gap: 5px; justify-items: center; min-width: 0; }
+.avatar-cell .avatar-opt { width: 100%; }
+.avatar-name { font-size: 11px; font-weight: 600; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; transition: color var(--t-fast) var(--ease); }
+.avatar-cell:has([aria-checked="true"]) .avatar-name { color: var(--accent); font-weight: 700; }
+.dlg-title-sub { font-family: var(--font-body, inherit); font-size: var(--fs-sm); font-weight: 500; color: var(--muted); letter-spacing: 0; margin-left: 8px; }
+.dlg-title-sub b { font-weight: 600; color: var(--accent); }
+.danger-zone { border-color: color-mix(in srgb, var(--down) 30%, var(--line)); }
+.danger-zone summary { color: var(--down); }
+.danger-zone p { margin: 0 0 12px; font-size: var(--fs-sm); color: var(--muted); }
+.danger-row { display: flex; gap: 10px; align-items: end; flex-wrap: wrap; }
+.danger-row .field { flex: 1 1 200px; margin: 0; }
+.chip--down { background: var(--down-soft); color: var(--down); border-color: transparent; }
 .avatar-opt:hover { transform: translateY(-2px); }
 .avatar-opt[aria-checked="true"] { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
 .avatar-opt[aria-checked="true"]::after { content: ""; position: absolute; right: 4px; bottom: 4px; width: 16px; height: 16px; border-radius: 50%; background: var(--accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6L9 17l-5-5'/%3E%3C/svg%3E") center/10px no-repeat; }
@@ -512,6 +526,7 @@ select { appearance: none; padding-right: 38px; background-image: url("data:imag
 .donut-center strong { font-family: var(--font-display); font-weight: 800; font-size: var(--fs-md); }
 .legend { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; flex: 1; min-width: 150px; max-height: 210px; overflow: auto; }
 .legend li { display: grid; grid-template-columns: 10px 1fr auto; gap: 8px; align-items: center; font-size: var(--fs-sm); }
+.legend li.muted { display: block; }
 .legend i { width: 10px; height: 10px; border-radius: 3px; }
 .legend b { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--ink-2); }
 
@@ -725,6 +740,23 @@ td.empty { display: table-cell; }
 /* =============================== Keyframes =============================== */
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes rise { to { opacity: 1; transform: none; } }
+
+/* Scroll-driven motion: cards ease up and settle as they enter the viewport (uses translate/scale so it
+   composes with the .reveal entrance animation and hover transforms). */
+.sr { translate: 0 34px; scale: 0.965; transition: translate 700ms var(--ease-spring) var(--sr-d, 0ms), scale 700ms var(--ease-spring) var(--sr-d, 0ms), transform var(--t-med) var(--ease), box-shadow var(--t-med) var(--ease), opacity var(--t-med) var(--ease); }
+.sr.in-view { translate: none; scale: none; }
+.scroll-prog { position: fixed; left: 0; top: 0; height: 3px; width: 100%; z-index: 60; transform-origin: 0 50%; transform: scaleX(var(--p, 0)); background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 50%, #fff)); pointer-events: none; opacity: 0.9; }
+
+/* Cursor effect */
+.cursor-fx { position: fixed; left: 0; top: 0; z-index: 9999; pointer-events: none; border-radius: 50%; will-change: transform; transition: opacity 200ms var(--ease); }
+.cursor-ring { width: 34px; height: 34px; margin: -17px 0 0 -17px; border: 1.5px solid color-mix(in srgb, var(--accent) 75%, transparent); transition: width 220ms var(--ease-spring), height 220ms var(--ease-spring), margin 220ms var(--ease-spring), background 200ms var(--ease), border-color 200ms var(--ease), opacity 200ms var(--ease); }
+.cursor-dot { width: 6px; height: 6px; margin: -3px 0 0 -3px; background: var(--accent); }
+.cursor-ring.is-link { width: 52px; height: 52px; margin: -26px 0 0 -26px; background: color-mix(in srgb, var(--accent) 12%, transparent); border-color: var(--accent); }
+.cursor-ring.is-text { width: 4px; height: 26px; margin: -13px 0 0 -2px; border-radius: 2px; background: color-mix(in srgb, var(--accent) 40%, transparent); border-color: transparent; }
+.cursor-ring.is-down { width: 24px; height: 24px; margin: -12px 0 0 -12px; }
+.cursor-fx.is-hidden, body:has(dialog[open]) .cursor-fx { opacity: 0; }
+.cursor-burst { position: fixed; z-index: 9998; pointer-events: none; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; border: 2px solid var(--accent); animation: burst 520ms var(--ease) forwards; }
+@keyframes burst { to { transform: scale(5); opacity: 0; } }
 @keyframes pop { from { opacity: 0; transform: translateY(8px) scale(0.97); } to { opacity: 1; transform: none; } }
 @keyframes toast-in { from { opacity: 0; transform: translateY(10px) scale(0.98); } }
 @keyframes toast-out { to { opacity: 0; transform: translateX(16px); } }
@@ -943,5 +975,7 @@ td.empty { display: table-cell; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; }
   .reveal { opacity: 1; transform: none; }
+  .sr { translate: none; scale: none; }
+  .cursor-fx, .scroll-prog { display: none; }
   .welcome-title .ch { opacity: 1; transform: none; }
 }

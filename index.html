@@ -78,6 +78,7 @@
       <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"/></symbol>
       <symbol id="i-layers" viewBox="0 0 24 24"><path d="M12 2l10 5-10 5L2 7z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></symbol>
       <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4-4.7-4.4 6.4-.8z"/></symbol>
+      <symbol id="i-cursor" viewBox="0 0 24 24"><path d="M5 3l14 7-6 2-2 6z"/><path d="M13 12l5 5"/></symbol>
       <symbol id="i-sound" viewBox="0 0 24 24"><path d="M11 5L6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.6 5.4a9 9 0 0 1 0 13.2"/></symbol>
       <symbol id="i-palette" viewBox="0 0 24 24"><path d="M12 3a9 9 0 0 0 0 18c1.1 0 1.6-.8 1.6-1.6 0-.5-.2-.8-.5-1.2-.3-.3-.5-.7-.5-1.2 0-.9.7-1.6 1.6-1.6h1.9A4.9 4.9 0 0 0 21 10.5C21 6.4 17 3 12 3z"/><circle cx="7.5" cy="11" r="1.2"/><circle cx="10.5" cy="7" r="1.2"/><circle cx="15" cy="7.5" r="1.2"/></symbol>
       <symbol id="i-feedback" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 9h8M8 13h5"/></symbol>
@@ -305,6 +306,10 @@
           <div><div style="display:flex;gap:10px;align-items:center"><svg class="ico"><use href="#i-sound"/></svg>Sound effects</div></div>
           <button type="button" class="switch" id="soundSwitch" role="switch" aria-checked="true" aria-label="Sound effects"></button>
         </div>
+        <div class="menu-row">
+          <div><div style="display:flex;gap:10px;align-items:center"><svg class="ico"><use href="#i-cursor"/></svg>Cursor effect</div></div>
+          <button type="button" class="switch" id="cursorSwitch" role="switch" aria-checked="true" aria-label="Cursor effect"></button>
+        </div>
         <div class="user-menu-theme">
           <span>Appearance</span>
           <div class="seg seg--icons" id="themeSeg" role="radiogroup" aria-label="Theme">
@@ -521,7 +526,7 @@
       <nav aria-label="Contact">
         <button type="button" class="footer-feedback" data-action="feedback"><svg class="ico ico--sm"><use href="#i-feedback"/></svg>Feedback</button>
         <a href="https://wa.me/60197881403" target="_blank" rel="noopener"><svg class="ico ico--sm"><use href="#i-chat"/></svg>WhatsApp</a>
-        <a href="mailto:irfannorazaman@gmail.com"><svg class="ico ico--sm"><use href="#i-mail"/></svg>Email</a>
+        <a href="https://mail.google.com/mail/?view=cm&amp;fs=1&amp;to=irfannorazaman@gmail.com&amp;su=TradeDesk" target="_blank" rel="noopener"><svg class="ico ico--sm"><use href="#i-mail"/></svg>Email</a>
         <a href="https://www.linkedin.com/in/irfansyahminorazman" target="_blank" rel="noopener"><svg class="ico ico--sm"><use href="#i-linkedin"/></svg>LinkedIn</a>
       </nav>
     </footer>
@@ -706,7 +711,7 @@
 
   <dialog id="profileDlg" class="dlg" aria-labelledby="profileDlgTitle">
     <form method="dialog" id="profileForm" class="dlg-body">
-      <h2 class="dlg-title" id="profileDlgTitle">Profile &amp; avatar</h2>
+      <h2 class="dlg-title" id="profileDlgTitle">Profile &amp; avatar<span class="dlg-title-sub" id="profileAvatarName"></span></h2>
       <fieldset class="field"><legend>Avatar</legend><div class="avatar-picker" id="profileAvatarPicker" role="radiogroup" aria-label="Avatar"></div><input type="hidden" name="avatar" id="profileAvatarInput" /></fieldset>
       <div class="grid-2">
         <div class="field"><label for="profName">Display name</label><input id="profName" name="display_name" required maxlength="64" /></div>
@@ -718,6 +723,14 @@
         <div class="grid-2">
           <div class="field"><label for="profCurrentPw">Current password</label><input id="profCurrentPw" name="current_password" type="password" autocomplete="current-password" /></div>
           <div class="field"><label for="profNewPw">New password</label><input id="profNewPw" name="password" type="password" autocomplete="new-password" minlength="8" /></div>
+        </div>
+      </details>
+      <details class="disclosure danger-zone" id="deactivateBox">
+        <summary>Deactivate account</summary>
+        <p>You’ll be signed out and won’t be able to sign in. Your statements and journal are kept, and the administrator can reactivate your account if you change your mind.</p>
+        <div class="danger-row">
+          <div class="field"><label for="deactPw">Confirm with your password</label><input id="deactPw" type="password" autocomplete="current-password" /></div>
+          <button type="button" class="btn btn--danger-ghost" id="btnDeactivate">Deactivate account</button>
         </div>
       </details>
       <p class="form-error" role="alert" hidden></p>
