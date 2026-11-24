@@ -216,7 +216,7 @@ function applyTheme(pref) {
   const dark = pref === "dark" || (pref === "system" && darkQuery.matches);
   document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
   $('meta[name="theme-color"]')?.setAttribute("content", dark ? "#1d1916" : "#f6f1e9");
-  $$("#themeSeg button").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.themeVal === pref)));
+  $$("[data-theme-val]").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.themeVal === pref)));
   bgField?.refreshColors();
   if (state.summary) renderCharts();
 }
@@ -1748,7 +1748,7 @@ function bindEvents() {
     await enterAdmin();
   };
   $("#menuLogout").onclick = () => { closeUserMenu(); logout(); };
-  $$("#themeSeg button").forEach((b) => (b.onclick = () => applyTheme(b.dataset.themeVal)));
+  $$("[data-theme-val]").forEach((b) => (b.onclick = () => applyTheme(b.dataset.themeVal)));
 
   // Delegated actions inside the app
   $("#appPage").addEventListener("click", async (e) => {
