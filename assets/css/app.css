@@ -416,7 +416,7 @@ select { appearance: none; padding-right: 38px; background-image: url("data:imag
 .auth-theme button { color: rgba(255, 255, 255, 0.85); }
 .auth-theme button:hover { color: #fff; }
 .auth-theme button[aria-checked="true"] { background: #fff; color: var(--raw-ink-950); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); }
-.auth-privacy { position: absolute; right: var(--gutter); bottom: clamp(14px, 2vw, 24px); z-index: 3; max-width: 400px; display: flex; gap: 10px; align-items: center; padding: 9px 14px 9px 10px; border-radius: 14px; font-size: 0.75rem; line-height: 1.45; color: rgba(255, 255, 255, 0.86); background: rgba(255, 255, 255, 0.12); border: 1px solid rgba(255, 255, 255, 0.24); -webkit-backdrop-filter: blur(10px) saturate(1.2); backdrop-filter: blur(10px) saturate(1.2); box-shadow: 0 10px 30px -18px rgba(0, 0, 0, 0.6); }
+.auth-privacy { position: absolute; left: var(--gutter); bottom: clamp(14px, 2vw, 24px); z-index: 3; max-width: 400px; display: flex; gap: 10px; align-items: center; padding: 9px 14px 9px 10px; border-radius: 14px; font-size: 0.75rem; line-height: 1.45; color: rgba(255, 255, 255, 0.86); background: rgba(255, 255, 255, 0.12); border: 1px solid rgba(255, 255, 255, 0.24); -webkit-backdrop-filter: blur(10px) saturate(1.2); backdrop-filter: blur(10px) saturate(1.2); box-shadow: 0 10px 30px -18px rgba(0, 0, 0, 0.6); }
 .auth-privacy .ico { width: 30px; height: 30px; padding: 7px; box-sizing: border-box; border-radius: 9px; flex: none; color: #fff; background: rgba(255, 255, 255, 0.16); }
 .auth-privacy strong { color: #fff; font-weight: 700; margin-right: 4px; }
 
@@ -937,7 +937,7 @@ td.empty { display: table-cell; }
 @media (max-width: 1060px) {
   .auth { padding-top: 72px; }
   .auth-veil { background: linear-gradient(180deg, rgba(10, 11, 14, 0.62) 0%, rgba(10, 11, 14, 0.42) 45%, rgba(10, 11, 14, 0.55) 100%); }
-  .auth-privacy { position: relative; right: auto; bottom: auto; max-width: 520px; width: 100%; margin-top: 14px; }
+  .auth-privacy { position: relative; left: auto; right: auto; bottom: auto; max-width: 520px; width: 100%; margin-top: 14px; }
   .primary-nav a .ico { display: inline; }
   .topnav-bar { height: auto; flex-wrap: wrap; padding: 10px 10px 10px 14px; row-gap: 10px; }
   .topnav-actions { margin-left: auto; }
