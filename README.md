@@ -17,7 +17,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/readme/hero.jpg" width="880" alt="TradeDesk dashboard in light and dark mode: net asset value, net return, realised profit and dividends, win rate, cash reserve and allocation.">
+  <img src="docs/readme/hero.webp" width="880" alt="TradeDesk dashboard in light and dark mode: net asset value, net return, realised profit and dividends, win rate, cash reserve and allocation.">
 </p>
 
 <p align="center">
