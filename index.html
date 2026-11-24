@@ -192,6 +192,10 @@
             <div class="avatar-picker" id="registerAvatarPicker" role="radiogroup" aria-label="Avatar"></div>
             <input type="hidden" name="avatar" id="registerAvatarInput" value="av-1" />
           </fieldset>
+          <label class="check terms-check" for="regTerms">
+            <input type="checkbox" id="regTerms" name="accept_terms" required />
+            <span>I have read and agree to the <button type="button" class="link-btn" data-open-terms>Terms &amp; Conditions</button>, including how my data is handled.</span>
+          </label>
           <p class="form-error" role="alert" hidden></p>
           <button type="submit" class="btn btn--primary btn--lg btn--block">Create account</button>
         </form>
@@ -526,6 +530,7 @@
     <footer class="site-footer">
       <p>© <span id="year"></span> TradeDesk by Irfan Syahmi · <span data-version></span></p>
       <nav aria-label="Contact">
+        <button type="button" class="footer-feedback" data-open-terms><svg class="ico ico--sm"><use href="#i-file"/></svg>Terms</button>
         <button type="button" class="footer-feedback" data-action="feedback"><svg class="ico ico--sm"><use href="#i-feedback"/></svg>Feedback</button>
         <a href="https://wa.me/60197881403" target="_blank" rel="noopener"><svg class="ico ico--sm"><use href="#i-chat"/></svg>WhatsApp</a>
         <a href="https://mail.google.com/mail/?view=cm&amp;fs=1&amp;to=irfannorazaman@gmail.com&amp;su=TradeDesk" target="_blank" rel="noopener"><svg class="ico ico--sm"><use href="#i-mail"/></svg>Email</a>
@@ -872,6 +877,71 @@
       <div class="dlg-actions">
         <button type="button" class="btn btn--ghost" data-close>Cancel</button>
         <button type="submit" class="btn btn--primary"><svg class="ico"><use href="#i-check"/></svg>Send feedback</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="termsDlg" class="dlg dlg--terms" aria-labelledby="termsTitle">
+    <form method="dialog" class="dlg-body">
+      <header class="terms-head">
+        <h2 class="dlg-title" id="termsTitle">Terms &amp; Conditions</h2>
+        <p class="dlg-lede">Version 1.0 · Effective 24 November 2026. Please read these before creating an account.</p>
+      </header>
+      <div class="terms-body" tabindex="0">
+        <h3>1. About TradeDesk</h3>
+        <p>TradeDesk (“the Service”) is a personal trading journal operated by Irfan Syahmi (“we”, “us”). It reads the monthly statements you upload from your broker and shows your portfolio figures, performance and goals. By creating an account or using the Service, you agree to these Terms.</p>
+
+        <h3>2. Your account</h3>
+        <ul>
+          <li>You must be at least 18 years old and give accurate details when you sign up.</li>
+          <li>Your account is for you alone. Keep your password private; you are responsible for activity under your account.</li>
+          <li>Tell us straight away if you think someone else has accessed your account.</li>
+        </ul>
+
+        <h3>3. Your data and privacy</h3>
+        <ul>
+          <li><b>What we keep:</b> your username, display name, email, settings, and the figures read from your statements (balances, trades, positions, fees and dividends) plus any journal entries you add.</li>
+          <li><b>What we don’t keep:</b> the PDF files you upload and their passwords. Your name from statements is not stored, and account numbers are reduced to their last four digits.</li>
+          <li><b>Protection:</b> statement data is encrypted in our database, all connections use HTTPS, and passwords are stored only as secure hashes.</li>
+          <li><b>Security records:</b> we log sign-ins, failed attempts and account changes, including the network address used, for 90 days to protect accounts.</li>
+          <li><b>Who can see it:</b> only you. The administrator can see account details (not your password) to run and support the Service, and accesses your data only when needed to fix a problem or when required by law.</li>
+          <li><b>No selling:</b> we never sell, rent or share your data for advertising.</li>
+          <li>We handle personal data in line with Malaysia’s Personal Data Protection Act 2010. You can ask to see, correct or delete your data at any time (see section 11).</li>
+        </ul>
+
+        <h3>4. Not financial advice</h3>
+        <p>TradeDesk is a record-keeping tool. Nothing in it is investment, tax or financial advice, and it does not recommend buying or selling anything. Your trading decisions are your own.</p>
+
+        <h3>5. Accuracy of figures</h3>
+        <p>Figures are calculated automatically from your statements and entries, and each upload is checked before it is saved. Even so, statements can be read incorrectly and calculations can differ from your broker’s. <b>Your broker’s official statement is always the authoritative record.</b> Check important figures against it before relying on them, for example for tax.</p>
+
+        <h3>6. Acceptable use</h3>
+        <p>You agree not to:</p>
+        <ul>
+          <li>upload statements or data that belong to someone else without their permission;</li>
+          <li>try to access other users’ accounts or data, or test, probe or attack the Service’s security;</li>
+          <li>overload the Service, use automated tools to scrape it, or interfere with its normal operation;</li>
+          <li>use the Service for anything unlawful.</li>
+        </ul>
+
+        <h3>7. Availability</h3>
+        <p>The Service is provided free of charge, “as is” and “as available”. It may be slow to wake up, temporarily unavailable, or changed over time. We may discontinue it with reasonable notice. Keep your own copies of anything important; you can export your data as CSV at any time.</p>
+
+        <h3>8. Limitation of liability</h3>
+        <p>To the extent the law allows, we are not liable for any trading or investment losses, or for indirect or consequential losses, arising from your use of the Service or from errors in its figures. Nothing in these Terms limits rights you have under law that cannot be excluded.</p>
+
+        <h3>9. Ending your account</h3>
+        <p>You can deactivate your account at any time from Profile &amp; avatar. To have your account and data permanently deleted, contact us. We may suspend or remove an account that breaks these Terms or puts the Service or other users at risk.</p>
+
+        <h3>10. Changes to these Terms</h3>
+        <p>We may update these Terms as the Service changes. If the changes are significant, we will tell you in the app or by email before they take effect. Continuing to use the Service after that means you accept the updated Terms.</p>
+
+        <h3>11. Governing law and contact</h3>
+        <p>These Terms are governed by the laws of Malaysia. For questions, data requests or to delete your account, email <a href="https://mail.google.com/mail/?view=cm&amp;fs=1&amp;to=irfannorazaman@gmail.com&amp;su=TradeDesk%20Terms" target="_blank" rel="noopener">irfannorazaman@gmail.com</a>.</p>
+      </div>
+      <div class="dlg-actions">
+        <button type="button" class="btn btn--ghost" data-close>Close</button>
+        <button type="button" class="btn btn--primary" id="termsAgree">I agree</button>
       </div>
     </form>
   </dialog>

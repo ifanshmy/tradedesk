@@ -487,6 +487,8 @@ async function onRegister(e) {
   if (!body.display_name?.trim()) return formError(form, "Please add a display name.");
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(body.email || "")) return formError(form, "Please enter a valid email address.");
   if ((body.password || "").length < 8) return formError(form, "Password must be at least 8 characters.");
+  body.accept_terms = $("#regTerms").checked;
+  if (!body.accept_terms) { $("#regTerms").focus(); return formError(form, "Please read and agree to the Terms & Conditions to create your account."); }
   formError(form, "");
   setLoading(btn, true, "Creating account…");
   try {
@@ -1947,6 +1949,7 @@ async function loadAdmin() {
         <div><span>Joined</span><b>${esc(u.created_at || "—")}</b></div>
         <div><span>Accounts · entries</span><b>${num(u.accounts_count)} · ${num(u.transactions_count)}</b></div>
         <div><span>Last statement</span><b>${esc(u.last_statement_period || "—")}</b></div>
+        <div><span>Terms accepted</span><b>${u.terms_version ? `v${esc(u.terms_version)} · ${esc((u.terms_accepted_at || "").slice(0, 10))}` : "—"}</b></div>
       </div>
       <div class="admin-user-foot">
         ${u.is_admin ? `<span class="chip chip--accent">${icon("shield", "ico--sm")}Admin</span>` : u.status === "deactivated" ? `<span class="chip chip--down">Deactivated</span>` : `<span class="chip">${esc(u.base_currency || "MYR")}</span>`}
@@ -2101,6 +2104,21 @@ function bindEvents() {
   $$("[data-auth-mode]").forEach((b) => (b.onclick = () => setAuthMode(b.dataset.authMode)));
   $("#loginForm").addEventListener("submit", onLogin);
   $("#registerForm").addEventListener("submit", onRegister);
+  // Terms & Conditions: open from the sign-up form or the footer; "I agree" ticks the sign-up box.
+  document.addEventListener("click", (e) => {
+    const t = e.target.closest("[data-open-terms]");
+    if (!t) return;
+    e.preventDefault();
+    const dlg = $("#termsDlg");
+    $("#termsAgree").hidden = !$("#registerForm") || $("#registerForm").hidden || !!state.token;
+    dlg.showModal();
+    $(".terms-body", dlg).scrollTop = 0;
+  });
+  $("#termsAgree").onclick = () => {
+    $("#regTerms").checked = true;
+    formError($("#registerForm"), "");
+    $("#termsDlg").close();
+  };
   $("#adminLoginForm").addEventListener("submit", onAdminLogin);
   $("#btnForgotPassword").onclick = () => {
     $("#forgotIdent").value = $("#loginUsername").value.trim();
