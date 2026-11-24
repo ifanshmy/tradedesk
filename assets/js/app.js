@@ -399,6 +399,9 @@ function showAdmin() {
 
 /* ------------------------------------------------------------------ auth UI */
 function setAuthMode(mode) {
+  // Smoothly animate the card between the old and new form heights instead of jumping.
+  const card = $(".auth-card");
+  const fromH = card && card.offsetParent ? card.getBoundingClientRect().height : 0;
   $$("[data-auth-mode]").forEach((b) => {
     const on = b.dataset.authMode === mode;
     b.classList.toggle("on", on);
@@ -418,8 +421,19 @@ function setAuthMode(mode) {
   $("#authHeading").textContent = copy[0];
   $("#authSub").textContent = copy[1];
   $$("#authPage .form-error").forEach((e) => (e.hidden = true));
-  const first = $(`#${{ login: "loginForm", register: "registerForm", admin: "adminLoginForm", reset: "resetForm" }[mode]} input`);
+  const formEl = $(`#${{ login: "loginForm", register: "registerForm", admin: "adminLoginForm", reset: "resetForm" }[mode]}`);
+  const first = $("input", formEl);
   first?.focus({ preventScroll: true });
+  if (card && fromH && !reduceMotion() && card.animate) {
+    const toH = card.getBoundingClientRect().height;
+    if (Math.abs(toH - fromH) > 2) {
+      card.getAnimations().forEach((a) => a.cancel());
+      card.classList.add("is-resizing");
+      const anim = card.animate([{ height: `${fromH}px` }, { height: `${toH}px` }], { duration: 340, easing: "cubic-bezier(0.22, 1, 0.36, 1)" });
+      anim.onfinish = anim.oncancel = () => card.classList.remove("is-resizing");
+    }
+    formEl?.animate([{ opacity: 0, transform: "translateY(6px)" }, { opacity: 1, transform: "none" }], { duration: 260, easing: "ease-out" });
+  }
 }
 
 const avatarLabel = (id) => (AVATARS.find((a) => a.id === resolveAvatar(id)) || AVATARS[0]).label;
