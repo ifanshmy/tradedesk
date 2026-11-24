@@ -2,6 +2,8 @@
 <html lang="en" data-theme="light">
 <head>
   <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-zVIKbSHbCtuRh89hfXhYzUgDNjQpyApkWEK8NEMrA18='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' https://*.onrender.com; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'" />
+  <meta name="referrer" content="no-referrer" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>TradeDesk · Trading Journal</title>
   <meta name="description" content="TradeDesk is a calm, private trading journal: read your broker statements, track NAV, journal trades and hit your goals." />
@@ -573,6 +575,19 @@
           </div>
         </header>
         <div class="feedback-list" id="adminFeedback"></div>
+      </section>
+      <section class="card glass" aria-labelledby="adminSecH">
+        <header class="card-head">
+          <div><p class="eyebrow">Last 90 days</p><h2 class="card-title" id="adminSecH">Security log</h2></div>
+          <div class="seg seg--sm" id="secFilter" role="group" aria-label="Filter security events">
+            <button type="button" class="on" data-s="">All</button>
+            <button type="button" data-s="login_failed">Failed</button>
+            <button type="button" data-s="login_blocked">Blocked</button>
+            <button type="button" data-s="reset_requested">Resets</button>
+          </div>
+        </header>
+        <div class="sec-summary" id="secSummary"></div>
+        <div class="table-scroll"><table class="tbl sec-table"><thead><tr><th>When (UTC)</th><th>Event</th><th>User</th><th>Address</th><th>Detail</th></tr></thead><tbody id="secRows"></tbody></table></div>
       </section>
     </main>
     <footer class="site-footer"><p>TradeDesk admin · <span data-version></span></p></footer>

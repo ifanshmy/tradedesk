@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-3.4.0-111111?style=flat-square" alt="Version 3.4.0">
+  <img src="https://img.shields.io/badge/version-3.5.0-111111?style=flat-square" alt="Version 3.5.0">
   <img src="https://img.shields.io/badge/brokers-Moomoo%20%C2%B7%20Mplus%20%C2%B7%20Webull-111111?style=flat-square" alt="Moomoo, Mplus, Webull">
   <img src="https://img.shields.io/badge/backend-FastAPI-111111?style=flat-square" alt="FastAPI">
   <img src="https://img.shields.io/badge/frontend-no%20build%20step-111111?style=flat-square" alt="No build step">
@@ -100,6 +100,10 @@ The preview uses the same code as the real import, so what you approve is what y
 ## Private by design
 
 - Passwords are hashed with bcrypt. Reset links are hashed, single-use and expire in 30 minutes.
+- Five wrong passwords lock an account for 15 minutes; one address is also limited across accounts.
+- Statement data is encrypted in the database. Names are never stored, and account numbers keep only their last 4 digits.
+- Strict security headers and a Content-Security-Policy that only allows the site's own scripts.
+- An admin security log of sign-ins, failed attempts, resets and account changes (kept 90 days).
 - Sign-in uses server-side sessions that end on sign-out, password change or deactivation.
 - PDF files and PDF passwords are never stored.
 - Each user only ever sees their own data, and users can deactivate their own account.

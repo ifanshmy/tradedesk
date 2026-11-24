@@ -1937,6 +1937,7 @@ async function loadAdmin() {
   ].join("").replaceAll(" reveal", "");
   try { state.feedback = await api("/api/admin/feedback"); } catch { state.feedback = []; }
   renderAdminFeedback();
+  await loadSecurityLog();
   $("#adminUsers").innerHTML = users.length ? users.map((u) => `
     <article class="admin-user">
       <div class="admin-user-top"><img src="${avatarSrc(u.avatar)}" alt="" width="46" height="46" loading="lazy" />
@@ -1996,6 +1997,30 @@ async function sendFeedback(e) {
     toast("Thanks! Your feedback was sent to the TradeDesk team.", "success");
   } catch (err) { formError(f, err.status === 404 ? "Feedback isn’t available on this server yet. Please try again later." : err.message); }
   finally { setLoading(btn, false); }
+}
+
+const SEC_EVENTS = {
+  login_ok: ["Signed in", ""], login_failed: ["Wrong password", "warn"], login_blocked: ["Blocked (too many tries)", "bad"],
+  admin_login: ["Admin sign-in", ""], registered: ["Account created", ""], reset_requested: ["Reset requested", ""],
+  reset_blocked: ["Reset blocked", "bad"], reset_completed: ["Password reset", ""], password_changed: ["Password changed", ""],
+  password_change_failed: ["Wrong current password", "warn"], deactivated: ["Deactivated", "warn"], reactivated: ["Reactivated", ""],
+  user_deleted: ["User removed", "bad"],
+};
+async function loadSecurityLog() {
+  let data;
+  const q = state.secFilter ? `&event=${encodeURIComponent(state.secFilter)}` : "";
+  try { data = await api(`/api/admin/security-log?limit=150${q}`); }
+  catch (err) { $("#secRows").innerHTML = `<tr><td colspan="5" class="muted">${esc(err.message)}</td></tr>`; return; }
+  const s = data.summary || {};
+  $("#secSummary").innerHTML = `
+    <span class="chip ${s.encryption ? "chip--up" : "chip--down"}">${icon("shield", "ico--sm")}Statement encryption ${s.encryption ? "on" : "off"}</span>
+    <span class="chip">${num(s.failed_24h)} wrong passwords · 24h</span>
+    <span class="chip ${num(s.blocked_24h) ? "chip--down" : ""}">${num(s.blocked_24h)} blocked · 24h</span>`;
+  const rows = data.events || [];
+  $("#secRows").innerHTML = rows.length ? rows.map((e) => {
+    const [label, tone] = SEC_EVENTS[e.event] || [e.event, ""];
+    return `<tr><td class="num">${esc(e.created_at)}</td><td><span class="sec-ev ${tone ? `sec-ev--${tone}` : ""}">${esc(label)}</span></td><td>${esc(e.username || e.user_id || "—")}</td><td><code>${esc(e.ip || "—")}</code></td><td class="muted">${esc(e.detail || "")}</td></tr>`;
+  }).join("") : `<tr><td colspan="5" class="muted">No events yet.</td></tr>`;
 }
 
 function renderAdminFeedback() {
@@ -2186,6 +2211,15 @@ function bindEvents() {
   $("#menuFeedback").onclick = () => { closeUserMenu(); openFeedback(); };
   $("#feedbackForm").addEventListener("submit", sendFeedback);
   $("#fbMessage").addEventListener("input", () => { $("#fbCount").textContent = `${$("#fbMessage").value.length} / 2000`; });
+
+  // Admin security log filter
+  $("#secFilter").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-s]");
+    if (!b) return;
+    $$("#secFilter button").forEach((x) => x.classList.toggle("on", x === b));
+    state.secFilter = b.dataset.s;
+    loadSecurityLog();
+  });
 
   // Admin feedback controls
   $("#fbFilter").addEventListener("click", (e) => {

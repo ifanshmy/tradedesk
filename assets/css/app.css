@@ -875,6 +875,12 @@ td.empty { display: table-cell; }
 .star.on { color: var(--raw-amber-500); }
 .fb-count { justify-self: end; font-size: var(--fs-xs); color: var(--faint); }
 .feedback-list { display: grid; gap: 10px; }
+.sec-summary { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip--up { background: var(--up-soft); color: var(--up); border-color: transparent; }
+.sec-table td { white-space: nowrap; }
+.sec-ev { font-weight: 700; }
+.sec-ev--warn { color: var(--warn, #b7791f); }
+.sec-ev--bad { color: var(--down); }
 .fb-item { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: start; padding: 14px; border-radius: var(--r-md); background: var(--field); border: 1px solid var(--line); }
 .fb-item.is-new { border-color: var(--accent-bright); box-shadow: inset 3px 0 0 var(--accent-bright); }
 .fb-item img { width: 40px; height: 40px; border-radius: 12px; object-fit: cover; }
