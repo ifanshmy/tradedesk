@@ -6,7 +6,7 @@
    Screen readers get the plain text; the per-letter spans are aria-hidden.
    ========================================================================== */
 
-const reduce = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+import { isReducedMotion as reduce } from "./motion.js";
 const coarse = matchMedia("(pointer: coarse)").matches;
 const tracked = new Set();
 let ptrX = -9999, ptrY = -9999, scheduled = false;

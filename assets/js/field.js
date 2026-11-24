@@ -8,11 +8,13 @@
    - prefers-reduced-motion: one still frame, no animation.
    ========================================================================== */
 
+import { isReducedMotion, onMotionChange } from "./motion.js";
+
 export function createField(canvas) {
   const ctx = canvas.getContext("2d");
   if (!ctx) return { start() {}, stop() {}, refreshColors() {} };
 
-  const reduce = matchMedia("(prefers-reduced-motion: reduce)");
+  const reduce = { get matches() { return isReducedMotion(); } };
   const coarse = matchMedia("(pointer: coarse)").matches;
   let w = 0, h = 0, dpr = 1, gap = 26;
   let xs = new Float32Array(0), ys = new Float32Array(0);
@@ -143,6 +145,13 @@ export function createField(canvas) {
   document.addEventListener("visibilitychange", () => {
     if (!running || reduce.matches) return;
     if (document.hidden) cancelAnimationFrame(raf);
+    else { last = performance.now(); raf = requestAnimationFrame(frame); }
+  });
+
+  onMotionChange(() => {
+    if (!running) return;
+    cancelAnimationFrame(raf);
+    if (reduce.matches) draw();
     else { last = performance.now(); raf = requestAnimationFrame(frame); }
   });
 

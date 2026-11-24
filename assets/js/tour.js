@@ -53,7 +53,7 @@ export function createTour({ steps, onFinish }) {
     if (step.before) await step.before();
     const target = step.target ? document.querySelector(step.target) : null;
     if (target) {
-      target.scrollIntoView({ block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+      target.scrollIntoView({ block: "center", behavior: document.documentElement.classList.contains("reduce-motion") || matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
       await new Promise((r) => setTimeout(r, 380));
     }
     title.textContent = step.title;

@@ -334,6 +334,8 @@ select { appearance: none; padding-right: 38px; background-image: url("data:imag
 .pw-wrap { position: relative; }
 .pw-wrap input { padding-right: 48px; }
 .pw-eye { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); width: 40px; height: 36px; border: 0; background: none; color: var(--muted); border-radius: 10px; display: grid; place-items: center; }
+/* Hide the browser's own show-password eye (Edge) so only ours appears. */
+input[type="password"]::-ms-reveal, input[type="password"]::-ms-clear { display: none; }
 .pw-eye:hover { color: var(--ink); background: var(--field-hover); }
 .form-error { margin: 0; display: flex; gap: 8px; align-items: flex-start; color: var(--down); background: var(--down-soft); padding: 10px 12px; border-radius: var(--r-sm); font-size: var(--fs-sm); font-weight: 600; }
 .form-note { margin: 0; color: var(--ink-2); background: var(--secondary-soft); padding: 10px 12px; border-radius: var(--r-sm); font-size: var(--fs-sm); }
@@ -766,16 +768,13 @@ td.empty { display: table-cell; }
 .sr.in-view { translate: none; scale: none; }
 .scroll-prog { position: fixed; left: 0; top: 0; height: 3px; width: 100%; z-index: 60; transform-origin: 0 50%; transform: scaleX(var(--p, 0)); background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 50%, #fff)); pointer-events: none; opacity: 0.9; }
 
-/* Cursor effect */
-.cursor-fx { position: fixed; left: 0; top: 0; z-index: 9999; pointer-events: none; border-radius: 50%; will-change: transform; transition: opacity 200ms var(--ease); }
-.cursor-ring { width: 34px; height: 34px; margin: -17px 0 0 -17px; border: 1.5px solid color-mix(in srgb, var(--accent) 75%, transparent); transition: width 220ms var(--ease-spring), height 220ms var(--ease-spring), margin 220ms var(--ease-spring), background 200ms var(--ease), border-color 200ms var(--ease), opacity 200ms var(--ease); }
-.cursor-dot { width: 6px; height: 6px; margin: -3px 0 0 -3px; background: var(--accent); }
-.cursor-ring.is-link { width: 52px; height: 52px; margin: -26px 0 0 -26px; background: color-mix(in srgb, var(--accent) 12%, transparent); border-color: var(--accent); }
-.cursor-ring.is-text { width: 4px; height: 26px; margin: -13px 0 0 -2px; border-radius: 2px; background: color-mix(in srgb, var(--accent) 40%, transparent); border-color: transparent; }
-.cursor-ring.is-down { width: 24px; height: 24px; margin: -12px 0 0 -12px; }
-.cursor-fx.is-hidden, body:has(dialog[open]) .cursor-fx { opacity: 0; }
-.cursor-burst { position: fixed; z-index: 9998; pointer-events: none; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; border: 2px solid var(--accent); animation: burst 520ms var(--ease) forwards; }
-@keyframes burst { to { transform: scale(5); opacity: 0; } }
+/* Cursor effect: magnetic highlight (see cursor.js) */
+.cursor-lens { position: fixed; left: 0; top: 0; z-index: 9999; pointer-events: none; width: 8px; height: 8px; border-radius: 4px; will-change: transform, width, height;
+  background: var(--accent); opacity: 0.55; transition: opacity 180ms var(--ease), background-color 180ms var(--ease), box-shadow 180ms var(--ease); }
+.cursor-lens[data-mode="snap"] { opacity: 1; background: transparent; box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--accent) 70%, transparent), 0 8px 22px -12px color-mix(in srgb, var(--accent) 70%, transparent); }
+.cursor-lens[data-mode="text"] { opacity: 0.85; }
+.cursor-lens.is-hidden, body:has(dialog[open]) .cursor-lens { opacity: 0; }
+.dlg-body.is-resizing { overflow: hidden; }
 @keyframes pop { from { opacity: 0; transform: translateY(8px) scale(0.97); } to { opacity: 1; transform: none; } }
 @keyframes toast-in { from { opacity: 0; transform: translateY(10px) scale(0.98); } }
 @keyframes toast-out { to { opacity: 0; transform: translateX(16px); } }
@@ -1023,6 +1022,12 @@ td.empty { display: table-cell; }
   *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; }
   .reveal { opacity: 1; transform: none; }
   .sr { translate: none; scale: none; }
-  .cursor-fx, .scroll-prog { display: none; }
+  .cursor-lens, .scroll-prog { display: none; }
   .welcome-title .ch { opacity: 1; transform: none; }
 }
+/* The in-app "Reduce motion" switch applies the same rules. */
+:root.reduce-motion *, :root.reduce-motion *::before, :root.reduce-motion *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; }
+:root.reduce-motion .reveal { opacity: 1; transform: none; }
+:root.reduce-motion .sr { translate: none; scale: none; }
+:root.reduce-motion .cursor-lens, :root.reduce-motion .scroll-prog { display: none; }
+:root.reduce-motion .welcome-title .ch { opacity: 1; transform: none; }

@@ -7,6 +7,7 @@ import { interactive, setInteractiveHTML, countTo } from "./itext.js";
 import { sfx, isSoundEnabled, setSoundEnabled } from "./sound.js";
 import { createTour } from "./tour.js";
 import { initCursor, isCursorEnabled, setCursorEnabled } from "./cursor.js";
+import { isReducedMotion, userReducedMotion, setReducedMotion } from "./motion.js";
 
 /* ------------------------------------------------------------------ utils */
 const $ = (s, el = document) => el.querySelector(s);
@@ -14,7 +15,7 @@ const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const icon = (name, cls = "") => `<svg class="ico ${cls}" aria-hidden="true"><use href="#i-${name}"/></svg>`;
-const reduceMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+const reduceMotion = () => isReducedMotion();
 const store = {
   get(k, d = null) { try { const v = localStorage.getItem(k); return v === null ? d : v; } catch { return d; } },
   set(k, v) { try { localStorage.setItem(k, v); } catch {} },
@@ -734,6 +735,19 @@ function switchView(view, { initial = false } = {}) {
   }
 }
 
+/* Animate an element from one height to another with a CSS transition (used by dialogs). */
+function resizeSmoothly(el, from, to) {
+  clearTimeout(el._resizeT);
+  el.classList.add("is-resizing");
+  el.style.transition = "none";
+  el.style.height = `${from}px`;
+  void el.offsetHeight;
+  el.style.transition = "height 340ms cubic-bezier(0.22, 1, 0.36, 1)";
+  el.style.height = `${to}px`;
+  const done = () => { el.style.transition = ""; el.style.height = ""; el.classList.remove("is-resizing"); };
+  el._resizeT = setTimeout(done, 380);
+}
+
 /* ------------------------------------------------------------------ floating tooltips */
 function initTooltips() {
   const tip = document.createElement("div");
@@ -776,7 +790,7 @@ function initTooltips() {
 
 /* ------------------------------------------------------------------ scroll-driven motion */
 function initScrollFx() {
-  if (reduceMotion()) return;
+  // Always set up; with reduced motion the CSS turns the movement off.
   const SEL = ".card, .kpi, .acc, .page-head, .admin-user, .goal-row, .tx-row, .empty";
   const root = $("#main");
   if (!root || !("IntersectionObserver" in window)) return;
@@ -2230,6 +2244,33 @@ function bindEvents() {
   };
   $("#btnDeactivate").onclick = deactivateAccount;
 
+  // Reduce motion switch
+  const motionSwitch = $("#motionSwitch");
+  const syncMotion = () => motionSwitch.setAttribute("aria-checked", String(userReducedMotion()));
+  syncMotion();
+  motionSwitch.onclick = (e) => {
+    e.stopPropagation();
+    setReducedMotion(!userReducedMotion());
+    sfx.toggle(userReducedMotion());
+    syncMotion();
+    syncCursor();
+  };
+
+  // Dialogs resize smoothly when a section (e.g. Change password) opens or closes.
+  document.addEventListener("click", (e) => {
+    const sum = e.target.closest(".dlg-body details > summary");
+    if (!sum || reduceMotion()) return;
+    const body = sum.closest(".dlg-body");
+    const det = sum.parentElement;
+    const h0 = body.getBoundingClientRect().height;
+    requestAnimationFrame(() => {
+      const h1 = body.getBoundingClientRect().height;
+      if (Math.abs(h1 - h0) < 2) return;
+      resizeSmoothly(body, h0, h1);
+      if (det.open) [...det.children].filter((c) => c !== sum).forEach((c) => c.animate([{ opacity: 0, transform: "translateY(-6px)" }, { opacity: 1, transform: "none" }], { duration: 260, easing: "ease-out" }));
+    });
+  });
+
   // Feedback
   $("#menuFeedback").onclick = () => { closeUserMenu(); openFeedback(); };
   $("#feedbackForm").addEventListener("submit", sendFeedback);
@@ -2275,7 +2316,7 @@ function bindEvents() {
   // Sounds: button presses, tour steps, dialogs opening.
   document.addEventListener("click", (e) => {
     const el = e.target.closest("button, a.btn, .chip-check, [role=menuitem]");
-    if (!el || el.closest("#primaryNav") || el.matches("#soundSwitch, #cursorSwitch, [data-accent-pick], .pk-sw, #accentConfirm, .star")) return;
+    if (!el || el.closest("#primaryNav") || el.matches("#soundSwitch, #cursorSwitch, #motionSwitch, [data-accent-pick], .pk-sw, #accentConfirm, .star")) return;
     if (el.matches("#tourNext, #tourBack")) sfx.step(); else sfx.tap();
   }, true);
   new MutationObserver((muts) => {
