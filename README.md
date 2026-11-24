@@ -17,7 +17,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/readme/hero.webp" width="880" alt="TradeDesk dashboard in light and dark mode: net asset value, net return, realised profit and dividends, win rate, cash reserve and allocation.">
+  <img src="docs/readme/hero-v2.jpg" width="880" alt="TradeDesk dashboard in light and dark mode: net asset value, net return, realised profit and dividends, win rate, cash reserve and allocation.">
 </p>
 
 <p align="center">
@@ -39,7 +39,7 @@ TradeDesk reads the statements for you, checks the maths, shows you exactly what
 ## How it works
 
 <p align="center">
-  <img src="docs/readme/flow.png" width="880" alt="Four steps: drop your PDF, unlock it if it is password-protected, verify the numbers with a before and after preview, then apply.">
+  <img src="docs/readme/flow-v2.png" width="880" alt="Four steps: drop your PDF, unlock it if it is password-protected, verify the numbers with a before and after preview, then apply.">
 </p>
 
 1. **Drop your PDF.** Moomoo, Mplus or Webull monthly statements, onto an account card or anywhere on the page.
@@ -50,7 +50,7 @@ TradeDesk reads the statements for you, checks the maths, shows you exactly what
 ## Checked before it counts
 
 <p align="center">
-  <img src="docs/readme/trust.png" width="880" alt="Verification checks: start NAV plus change equals end NAV, securities plus cash equals NAV, month-to-month continuity, cash movements reconcile, IPO applications and refunds, broker and account match.">
+  <img src="docs/readme/trust-v2.png" width="880" alt="Verification checks: start NAV plus change equals end NAV, securities plus cash equals NAV, month-to-month continuity, cash movements reconcile, IPO applications and refunds, broker and account match.">
 </p>
 
 The preview uses the same code as the real import, so what you approve is what you get. IPO applications are held as cash (not withdrawals) and their refunds are not counted as dividends. Mplus trust and trade transfers are recognised as internal, so they do not inflate deposits.
@@ -89,7 +89,7 @@ The preview uses the same code as the real import, so what you approve is what y
 ## Make it yours
 
 <p align="center">
-  <img src="docs/readme/themes.png" width="880" alt="Seven colour themes: Ember, Ocean, Jade, Amethyst, Rose, Gold and Graphite.">
+  <img src="docs/readme/themes-v2.png" width="880" alt="Seven colour themes: Ember, Ocean, Jade, Amethyst, Rose, Gold and Graphite.">
 </p>
 
 - **Seven colour themes**, each with light and dark mode. New users pick one before the guided tour.
