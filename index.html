@@ -24,6 +24,8 @@
         var pref = localStorage.getItem("td_theme_v3") || "light";
         var dark = pref === "dark" || (pref === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
         document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
+        var accent = localStorage.getItem("td_accent_v1");
+        if (accent) document.documentElement.setAttribute("data-accent", accent);
       } catch (e) {}
     })();
   </script>
@@ -75,6 +77,10 @@
       <symbol id="i-down" viewBox="0 0 24 24"><path d="M7 7l10 10M17 8v9H8"/></symbol>
       <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"/></symbol>
       <symbol id="i-layers" viewBox="0 0 24 24"><path d="M12 2l10 5-10 5L2 7z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></symbol>
+      <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4-4.7-4.4 6.4-.8z"/></symbol>
+      <symbol id="i-sound" viewBox="0 0 24 24"><path d="M11 5L6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.6 5.4a9 9 0 0 1 0 13.2"/></symbol>
+      <symbol id="i-palette" viewBox="0 0 24 24"><path d="M12 3a9 9 0 0 0 0 18c1.1 0 1.6-.8 1.6-1.6 0-.5-.2-.8-.5-1.2-.3-.3-.5-.7-.5-1.2 0-.9.7-1.6 1.6-1.6h1.9A4.9 4.9 0 0 0 21 10.5C21 6.4 17 3 12 3z"/><circle cx="7.5" cy="11" r="1.2"/><circle cx="10.5" cy="7" r="1.2"/><circle cx="15" cy="7.5" r="1.2"/></symbol>
+      <symbol id="i-feedback" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 9h8M8 13h5"/></symbol>
       <symbol id="i-csv" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M12 11v6M9 14l3 3 3-3"/></symbol>
     </defs>
   </svg>
@@ -226,9 +232,9 @@
         <p class="auth-foot">TradeDesk by Irfan Syahmi · <span data-version></span></p>
       </div>
     </div>
-    <aside class="auth-privacy glass glass--strong" aria-label="Privacy">
+    <aside class="auth-privacy" aria-label="Privacy">
       <svg class="ico"><use href="#i-shield"/></svg>
-      <p style="margin:0"><strong>Your data stays private</strong>Your statements, trades and goals are visible only to your account. PDF passwords are used once to read the file and are never stored. Account passwords are encrypted, and we never sell or share your data.</p>
+      <p style="margin:0"><strong>Private by design.</strong>Only you can see your data. PDF passwords are never stored, and we never sell or share anything.</p>
     </aside>
   </section>
 
@@ -289,9 +295,18 @@
         <button type="button" role="menuitem" id="menuProfile"><svg class="ico"><use href="#i-user"/></svg>Profile &amp; avatar</button>
         <button type="button" role="menuitem" id="menuTour"><svg class="ico"><use href="#i-compass"/></svg>Take the tour</button>
         <button type="button" role="menuitem" id="menuExport" class="show-sm"><svg class="ico"><use href="#i-download"/></svg>Export CSV</button>
+        <button type="button" role="menuitem" id="menuFeedback"><svg class="ico"><use href="#i-feedback"/></svg>Send feedback</button>
         <button type="button" role="menuitem" id="menuAdmin" hidden><svg class="ico"><use href="#i-shield"/></svg>Admin console</button>
+        <div class="menu-block">
+          <div class="menu-block-head">Colour theme <span id="menuAccentName">Ember</span></div>
+          <div class="accent-dots" id="menuAccents" role="radiogroup" aria-label="Colour theme"></div>
+        </div>
+        <div class="menu-row" style="border-top:1px solid var(--line)">
+          <div><div style="display:flex;gap:10px;align-items:center"><svg class="ico"><use href="#i-sound"/></svg>Sound effects</div></div>
+          <button type="button" class="switch" id="soundSwitch" role="switch" aria-checked="true" aria-label="Sound effects"></button>
+        </div>
         <div class="user-menu-theme">
-          <span>Theme</span>
+          <span>Appearance</span>
           <div class="seg seg--icons" id="themeSeg" role="radiogroup" aria-label="Theme">
             <button type="button" role="radio" data-theme-val="light" aria-label="Light"><svg class="ico"><use href="#i-sun"/></svg></button>
             <button type="button" role="radio" data-theme-val="dark" aria-label="Dark"><svg class="ico"><use href="#i-moon"/></svg></button>
@@ -504,6 +519,7 @@
     <footer class="site-footer">
       <p>© <span id="year"></span> TradeDesk by Irfan Syahmi · <span data-version></span></p>
       <nav aria-label="Contact">
+        <button type="button" class="footer-feedback" data-action="feedback"><svg class="ico ico--sm"><use href="#i-feedback"/></svg>Feedback</button>
         <a href="https://wa.me/60197881403" target="_blank" rel="noopener"><svg class="ico ico--sm"><use href="#i-chat"/></svg>WhatsApp</a>
         <a href="mailto:irfannorazaman@gmail.com"><svg class="ico ico--sm"><use href="#i-mail"/></svg>Email</a>
         <a href="https://www.linkedin.com/in/irfansyahminorazman" target="_blank" rel="noopener"><svg class="ico ico--sm"><use href="#i-linkedin"/></svg>LinkedIn</a>
@@ -541,6 +557,18 @@
           <div class="suggestions" id="adminSuggestions"></div>
         </section>
       </div>
+      <section class="card glass" aria-labelledby="adminFbH">
+        <header class="card-head">
+          <div><p class="eyebrow">From users</p><h2 class="card-title" id="adminFbH">Feedback</h2></div>
+          <div class="seg seg--sm" id="fbFilter" role="group" aria-label="Filter feedback">
+            <button type="button" class="on" data-f="all">All</button>
+            <button type="button" data-f="new">New</button>
+            <button type="button" data-f="read">Read</button>
+            <button type="button" data-f="done">Done</button>
+          </div>
+        </header>
+        <div class="feedback-list" id="adminFeedback"></div>
+      </section>
     </main>
     <footer class="site-footer"><p>TradeDesk admin · <span data-version></span></p></footer>
   </div>
@@ -725,6 +753,84 @@
         <button type="button" class="btn btn--primary" id="btnExportOne">Download month</button>
       </div>
     </div>
+  </dialog>
+
+  <dialog id="accentDlg" class="dlg dlg--wide" aria-labelledby="accentTitle">
+    <div class="dlg-body">
+      <div>
+        <p class="eyebrow">Make it yours</p>
+        <h2 class="dlg-title" id="accentTitle">Pick your dashboard colour</h2>
+        <p class="dlg-lede" style="margin-top:4px">Hover to preview, click to choose. You can change it any time from your profile menu.</p>
+      </div>
+      <div class="picker">
+        <div class="picker-list" id="accentList" role="radiogroup" aria-label="Colour theme"></div>
+        <div class="preview-stage" id="previewStage">
+          <div class="preview" id="accentPreview" aria-hidden="true">
+            <div class="pv-bar">
+              <span class="pv-logo"></span><span class="pv-word">Trade<em>Desk</em></span>
+              <span class="pv-nav"><span class="on">Overview</span><span>Performance</span><span>Journal</span></span>
+              <span class="pv-btn"><i></i>Log trade</span>
+            </div>
+            <div><div class="pv-eyebrow" id="pvDate">Today</div><div class="pv-hello">Good day, <em id="pvName">trader</em></div></div>
+            <div class="pv-grid">
+              <div class="pv-card">
+                <div class="pv-label">Net asset value</div>
+                <div class="pv-num">RM 12,480.50</div>
+                <span class="pv-chip">+4.82%</span>
+                <svg class="pv-spark" id="pvSpark" viewBox="0 0 200 46" preserveAspectRatio="none">
+                  <defs><linearGradient id="pvGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-opacity=".35"/><stop offset="1" stop-opacity="0"/></linearGradient></defs>
+                  <path d="M0 38 C20 36 30 30 50 31 S80 18 100 22 S135 12 150 14 S180 6 200 4 L200 46 L0 46Z" fill="url(#pvGrad)"/>
+                  <path class="line" d="M0 38 C20 36 30 30 50 31 S80 18 100 22 S135 12 150 14 S180 6 200 4" fill="none" stroke-width="2.5" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <div class="pv-kpis">
+                <div class="pv-card"><div class="pv-kpi"><span class="pv-label">Win rate</span><span class="pv-ico"></span></div><div class="pv-num">62.0%</div><div class="pv-meter"><span></span></div></div>
+                <div class="pv-card"><div class="pv-kpi"><span class="pv-label">Realised</span><span class="pv-ico"></span></div><div class="pv-num">+RM 846</div></div>
+              </div>
+            </div>
+            <div class="pv-card">
+              <div class="pv-label">Performance</div>
+              <div class="pv-bars"><span style="height:40%"></span><span style="height:62%"></span><span style="height:48%"></span><span style="height:78%"></span><span style="height:58%"></span><span style="height:92%"></span><span style="height:70%"></span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="dlg-actions">
+        <span class="picker-name grow">Selected: <b id="accentChosenName">Ember</b></span>
+        <button type="button" class="btn btn--ghost" id="accentSkip">Keep Ember</button>
+        <button type="button" class="btn btn--primary" id="accentConfirm"><svg class="ico"><use href="#i-check"/></svg><span>Use this colour</span></button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="feedbackDlg" class="dlg" aria-labelledby="feedbackTitle">
+    <form method="dialog" id="feedbackForm" class="dlg-body">
+      <div class="dlg-icon dlg-icon--accent"><svg class="ico"><use href="#i-feedback"/></svg></div>
+      <h2 class="dlg-title" id="feedbackTitle">Send feedback</h2>
+      <p class="dlg-lede">Ideas, bugs, anything. It goes straight to the TradeDesk team.</p>
+      <fieldset class="field"><legend>What is it about?</legend>
+        <div class="chips fb-cats" id="fbCats" role="radiogroup" aria-label="Category">
+          <label class="chip-check"><input type="radio" name="category" value="Idea" checked /><span>Idea</span></label>
+          <label class="chip-check"><input type="radio" name="category" value="Bug" /><span>Bug</span></label>
+          <label class="chip-check"><input type="radio" name="category" value="Design" /><span>Design</span></label>
+          <label class="chip-check"><input type="radio" name="category" value="Statements" /><span>Statements</span></label>
+          <label class="chip-check"><input type="radio" name="category" value="Other" /><span>Other</span></label>
+        </div>
+      </fieldset>
+      <fieldset class="field"><legend>How do you like TradeDesk? <span class="muted">(optional)</span></legend>
+        <div class="stars" id="fbStars" role="radiogroup" aria-label="Rating"></div>
+      </fieldset>
+      <div class="field">
+        <label for="fbMessage">Your message</label>
+        <textarea id="fbMessage" name="message" rows="4" maxlength="2000" required placeholder="Tell us what you think…"></textarea>
+        <small class="fb-count" id="fbCount">0 / 2000</small>
+      </div>
+      <p class="form-error" role="alert" hidden></p>
+      <div class="dlg-actions">
+        <button type="button" class="btn btn--ghost" data-close>Cancel</button>
+        <button type="submit" class="btn btn--primary"><svg class="ico"><use href="#i-check"/></svg>Send feedback</button>
+      </div>
+    </form>
   </dialog>
 
   <dialog id="confirmDlg" class="dlg dlg--sm" aria-labelledby="confirmTitle">

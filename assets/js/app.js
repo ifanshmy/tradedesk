@@ -4,6 +4,7 @@
 import { APP_VERSION } from "./version.js";
 import { createField } from "./field.js";
 import { interactive, setInteractiveHTML, countTo } from "./itext.js";
+import { sfx, isSoundEnabled, setSoundEnabled } from "./sound.js";
 import { createTour } from "./tour.js";
 
 /* ------------------------------------------------------------------ utils */
@@ -166,6 +167,7 @@ function toast(message, type = "info", ms = 5000) {
   while (box.children.length >= 4) box.firstElementChild.remove();
   const el = document.createElement("div");
   el.className = `toast toast--${type}`;
+  if (type === "success") sfx.success(); else if (type === "error") sfx.error();
   el.setAttribute("role", type === "error" ? "alert" : "status");
   const ico = type === "error" ? "alert" : type === "success" ? "check" : "info";
   el.innerHTML = `${icon(ico)}<span>${esc(message)}</span><button type="button" aria-label="Dismiss">${icon("x", "ico--sm")}</button>`;
@@ -222,6 +224,106 @@ function applyTheme(pref) {
 }
 darkQuery.addEventListener?.("change", () => { if (themePref() === "system") applyTheme("system"); });
 
+/* ------------------------------------------------------------------ colour themes (accent) */
+const ACCENT_KEY = "td_accent_v1";
+const ACCENT_THEMES = [
+  { id: "ember", name: "Ember", hex: "#ff5b2e", desc: "Warm tangerine, the TradeDesk original" },
+  { id: "ocean", name: "Ocean", hex: "#2f7bff", desc: "Calm, confident blue" },
+  { id: "jade", name: "Jade", hex: "#10b981", desc: "Fresh growth green" },
+  { id: "amethyst", name: "Amethyst", hex: "#8b5cf6", desc: "Rich, creative violet" },
+  { id: "rose", name: "Rose", hex: "#f43f6e", desc: "Bold crimson energy" },
+  { id: "gold", name: "Gold", hex: "#f5a300", desc: "Warm bullion amber" },
+  { id: "graphite", name: "Graphite", hex: "#52637a", desc: "Minimal monochrome" },
+];
+const accentById = (id) => ACCENT_THEMES.find((a) => a.id === id) || ACCENT_THEMES[0];
+function currentAccent() { return document.documentElement.getAttribute("data-accent") || store.get(ACCENT_KEY, "ember") || "ember"; }
+
+/** Apply a colour theme to the whole app. `save` also stores it on the account. */
+function applyAccent(id, { save = false, remember = true } = {}) {
+  const a = accentById(id);
+  document.documentElement.setAttribute("data-accent", a.id);
+  if (remember) store.set(ACCENT_KEY, a.id);
+  bgField?.refreshColors();
+  renderMenuAccents();
+  if (state.summary && remember) renderCharts();
+  if (save && state.token && state.mode === "user") {
+    api("/api/settings", { method: "PUT", body: { accent: a.id }, quiet401: true }).catch(() => {});
+  }
+}
+
+function renderMenuAccents() {
+  const box = $("#menuAccents");
+  if (!box) return;
+  const cur = currentAccent();
+  $("#menuAccentName").textContent = accentById(cur).name;
+  box.innerHTML = ACCENT_THEMES.map((a) => `<button type="button" class="accent-dot" role="radio" aria-checked="${a.id === cur}" aria-label="${a.name}" title="${a.name}" data-accent-pick="${a.id}" style="background:${a.hex}"></button>`).join("");
+}
+
+/** First-run colour picker with a live, interactive dashboard preview. Resolves when closed. */
+function openAccentPicker() {
+  const dlg = $("#accentDlg");
+  const list = $("#accentList");
+  const preview = $("#accentPreview");
+  const spark = $("#pvSpark");
+  const original = currentAccent();
+  let chosen = original;
+  $("#pvName").textContent = firstName(state.user);
+  $("#pvDate").textContent = new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
+  list.innerHTML = ACCENT_THEMES.map((a) => `
+    <button type="button" class="picker-opt" role="radio" aria-checked="${a.id === chosen}" data-pick="${a.id}" style="--sw:${a.hex}">
+      <i aria-hidden="true"></i><span><b>${a.name}</b><span>${esc(a.desc)}</span></span><em class="tick" aria-hidden="true">${icon("check")}</em>
+    </button>`).join("");
+  const show = (id, animate = true) => {
+    preview.setAttribute("data-accent", id);
+    applyAccent(id, { remember: false });
+    $("#accentChosenName").textContent = accentById(chosen).name;
+    if (animate && !reduceMotion()) {
+      spark.classList.remove("draw"); preview.classList.remove("pulse");
+      void spark.getBoundingClientRect();
+      spark.classList.add("draw"); preview.classList.add("pulse");
+    }
+  };
+  const choose = (id) => {
+    chosen = id;
+    $$(".picker-opt", list).forEach((b) => b.setAttribute("aria-checked", String(b.dataset.pick === id)));
+    $("#accentConfirm span").textContent = `Use ${accentById(id).name}`;
+    show(id);
+  };
+  const opts = $$(".picker-opt", list);
+  opts.forEach((b, i) => {
+    b.onmouseenter = () => { if (b.dataset.pick !== preview.getAttribute("data-accent")) { sfx.hover(); show(b.dataset.pick); } };
+    b.onfocus = b.onmouseenter;
+    b.onclick = () => { sfx.select(); choose(b.dataset.pick); };
+    b.onkeydown = (e) => {
+      const d = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 }[e.key];
+      if (d) { e.preventDefault(); const n = opts[(i + d + opts.length) % opts.length]; n.focus(); choose(n.dataset.pick); }
+    };
+  });
+  list.onmouseleave = () => show(chosen, false);
+  // Gentle 3D tilt following the pointer.
+  const stage = $("#previewStage");
+  stage.onpointermove = (e) => {
+    if (reduceMotion()) return;
+    const r = stage.getBoundingClientRect();
+    preview.style.setProperty("--ry", `${(((e.clientX - r.left) / r.width) - 0.5) * 10}deg`);
+    preview.style.setProperty("--rx", `${(0.5 - (e.clientY - r.top) / r.height) * 8}deg`);
+  };
+  stage.onpointerleave = () => { preview.style.setProperty("--rx", "0deg"); preview.style.setProperty("--ry", "0deg"); };
+  choose(chosen);
+  dlg.showModal();
+  setTimeout(() => $(`.picker-opt[data-pick="${chosen}"]`, list)?.focus(), 80);
+  return new Promise((resolve) => {
+    const finish = (id) => {
+      applyAccent(id, { save: true });
+      dlg.close();
+      resolve(id);
+    };
+    $("#accentConfirm").onclick = () => { sfx.success(); finish(chosen); };
+    $("#accentSkip").onclick = () => finish("ember");
+    dlg.addEventListener("cancel", (e) => { e.preventDefault(); finish(original === "ember" ? "ember" : original); }, { once: true });
+  });
+}
+
 /* ------------------------------------------------------------------ server status */
 async function checkServer() {
   const el = $("#serverStatus");
@@ -249,6 +351,9 @@ function saveSession() { store.set(SESSION_KEY, JSON.stringify({ token: state.to
 function loadSession() { try { return JSON.parse(store.get(SESSION_KEY, "null")); } catch { return null; } }
 function clearSession() {
   store.del(SESSION_KEY);
+  store.del(ACCENT_KEY);
+  document.documentElement.removeAttribute("data-accent");
+  renderMenuAccents();
   state.token = "";
   state.user = null;
   state.summary = null;
@@ -510,6 +615,7 @@ async function welcomeSequence({ firstTime, load }) {
     clearInterval(creep);
     steps.forEach((s) => s.classList.add("done"));
     setP(1);
+    sfx.welcome();
     await minShow;
     await sleep(320);
   } catch (err) {
@@ -601,6 +707,7 @@ function switchView(view, { initial = false } = {}) {
   const sec = $(`#view-${view}`);
   document.title = `TradeDesk · ${sec?.dataset.title || "Overview"}`;
   requestAnimationFrame(moveNavPill);
+  if (!initial) sfx.nav();
   if (!initial && state.summary) {
     if (view === "performance") renderPerformance();
     if (view === "statements") renderStatementReport();
@@ -646,6 +753,8 @@ async function refreshData({ onStep, silent = false } = {}) {
     state.txs = data.transactions || [];
     state.periods = data.periods || {};
     state.detailPeriods = null;
+    state.settings = data.settings || {};
+    if (state.settings.accent && state.settings.accent !== currentAccent()) applyAccent(state.settings.accent);
     if (!state.statements.some((s) => s.id === state.activeStatementId)) state.activeStatementId = state.statements[0]?.id ?? null;
     renderUserChrome();
     populateAccountSelects();
@@ -1074,6 +1183,18 @@ function drawChart(id, cfg) {
   };
   state.charts[id] = new Chart(canvas, cfg);
 }
+function markEmpty(canvasId, empty, text) {
+  const box = document.getElementById(canvasId)?.closest(".chart-box");
+  if (!box) return;
+  box.classList.toggle("is-empty", empty);
+  if (empty) box.dataset.empty = text; else delete box.dataset.empty;
+}
+// Axis labels: whole currency units normally, cents when the range is tiny (avoids "RM 1, RM 1, RM 1").
+const axisMoney = (base) => (v, i, ticks) => {
+  const span = Math.abs((ticks?.[ticks.length - 1]?.value ?? 0) - (ticks?.[0]?.value ?? 0));
+  return fmt(v, base, span < 10 ? 2 : 0);
+};
+
 function gradient(ctx, color, h = 260) {
   const g = ctx.createLinearGradient(0, 0, 0, h);
   g.addColorStop(0, color + "55");
@@ -1106,6 +1227,7 @@ function renderCharts() {
 
   // Performance progression (NAV line on left axis, P&L bars on right axis)
   const list = state.periods?.[state.overviewPeriod] || [];
+  markEmpty("overviewPerfChart", !list.length, "Your performance chart appears after your first statement or journal entry.");
   drawChart("overviewPerfChart", {
     data: {
       labels: list.map((x) => x.period),
@@ -1118,8 +1240,8 @@ function renderCharts() {
       plugins: { tooltip: { callbacks: { label: (c) => `${c.dataset.label}: ${fmt(c.parsed.y, base)}` } } },
       scales: {
         x: { ticks: { color: th.tick }, grid: { display: false }, border: { display: false } },
-        y: { position: "left", ticks: { color: th.tick, callback: (v) => fmt(v, base, 0) }, grid: { color: th.grid }, border: { display: false } },
-        y1: { position: "right", ticks: { color: th.tick, callback: (v) => fmt(v, base, 0) }, grid: { display: false }, border: { display: false } },
+        y: { position: "left", ticks: { color: th.tick, callback: axisMoney(base) }, grid: { color: th.grid }, border: { display: false } },
+        y1: { position: "right", ticks: { color: th.tick, callback: axisMoney(base) }, grid: { display: false }, border: { display: false } },
       },
     },
   });
@@ -1142,6 +1264,7 @@ function renderCharts() {
     entries = [...entries.slice(0, 7), ["Other", rest]];
   }
   const total = entries.reduce((acc, [, v]) => acc + v, 0);
+  markEmpty("allocChart", !entries.length, "");
   $("#allocTotal").textContent = fmt(total, base, 0);
   $("#allocLegend").innerHTML = entries.length ? entries.map(([k, v], i) =>
     `<li><i style="background:${pal[i % pal.length]}"></i><span>${esc(k)}</span><b>${total ? ((v / total) * 100).toFixed(1) : 0}%</b></li>`).join("")
@@ -1172,12 +1295,14 @@ async function renderPerformance() {
   const pal = chartPalette();
   const area = cssVar("--chart-area");
   $("#periodTableTitle").textContent = { monthly: "Monthly breakdown", quarterly: "Quarterly breakdown", yearly: "Yearly breakdown" }[state.detailPeriod];
+  markEmpty("periodPnlChart", !list.length, "No periods yet. Upload a statement or log a trade.");
+  markEmpty("periodNavChart", !list.length, "No periods yet. Upload a statement or log a trade.");
   drawChart("periodPnlChart", {
     type: "bar",
     data: { labels: list.map((x) => x.period), datasets: [{ label: "Realised P&L + dividends", data: list.map((x) => x.net_pnl), backgroundColor: list.map((x) => (num(x.net_pnl) >= 0 ? pal[2] : cssVar("--down"))), borderRadius: 6, maxBarThickness: 34 }] },
     options: {
       plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => fmt(c.parsed.y, base) } } },
-      scales: { x: { ticks: { color: th.tick }, grid: { display: false }, border: { display: false } }, y: { ticks: { color: th.tick, callback: (v) => fmt(v, base, 0) }, grid: { color: th.grid }, border: { display: false } } },
+      scales: { x: { ticks: { color: th.tick }, grid: { display: false }, border: { display: false } }, y: { ticks: { color: th.tick, callback: axisMoney(base) }, grid: { color: th.grid }, border: { display: false } } },
     },
   });
   drawChart("periodNavChart", {
@@ -1191,7 +1316,7 @@ async function renderPerformance() {
     },
     options: {
       plugins: { tooltip: { callbacks: { label: (c) => `${c.dataset.label}: ${fmt(c.parsed.y, base)}` } } },
-      scales: { x: { ticks: { color: th.tick }, grid: { display: false }, border: { display: false } }, y: { ticks: { color: th.tick, callback: (v) => fmt(v, base, 0) }, grid: { color: th.grid }, border: { display: false } } },
+      scales: { x: { ticks: { color: th.tick }, grid: { display: false }, border: { display: false } }, y: { ticks: { color: th.tick, callback: axisMoney(base) }, grid: { color: th.grid }, border: { display: false } } },
     },
   });
   $("#periodTable tbody").innerHTML = list.length ? list.map((r) => `
@@ -1613,7 +1738,10 @@ async function loadAdmin() {
     kpiTile({ label: "Accounts", value: num(st.total_accounts), sub: "Brokerage cards", ico: "wallet", tone: "kpi-icon--sage" }),
     kpiTile({ label: "Statements", value: num(st.total_statements), sub: "Uploaded PDFs", ico: "file" }),
     kpiTile({ label: "Journal entries", value: num(st.total_transactions), sub: "All users", ico: "book", tone: "kpi-icon--sage" }),
+    kpiTile({ label: "New feedback", value: num(st.new_feedback), sub: "Waiting for review", ico: "feedback" }),
   ].join("").replaceAll(" reveal", "");
+  try { state.feedback = await api("/api/admin/feedback"); } catch { state.feedback = []; }
+  renderAdminFeedback();
   $("#adminUsers").innerHTML = users.length ? users.map((u) => `
     <article class="admin-user">
       <div class="admin-user-top"><img src="${avatarSrc(u.avatar)}" alt="" width="46" height="46" loading="lazy" />
@@ -1638,6 +1766,72 @@ async function loadAdmin() {
     </article>`).join("") : `<div class="empty">${icon("info")}<strong>No notes yet</strong></div>`;
 }
 
+/* ------------------------------------------------------------------ feedback */
+let fbRating = 0;
+function renderStars() {
+  $("#fbStars").innerHTML = [1, 2, 3, 4, 5].map((n) => `<button type="button" class="star ${n <= fbRating ? "on" : ""}" role="radio" aria-checked="${n === fbRating}" aria-label="${n} star${n > 1 ? "s" : ""}" data-star="${n}">${icon("star")}</button>`).join("");
+  $$("#fbStars .star").forEach((b) => {
+    b.onclick = () => { fbRating = fbRating === Number(b.dataset.star) ? 0 : Number(b.dataset.star); sfx.select(); renderStars(); };
+    b.onmouseenter = () => $$("#fbStars .star").forEach((x) => x.classList.toggle("on", Number(x.dataset.star) <= Number(b.dataset.star)));
+  });
+  $("#fbStars").onmouseleave = () => $$("#fbStars .star").forEach((x) => x.classList.toggle("on", Number(x.dataset.star) <= fbRating));
+}
+function openFeedback() {
+  const f = $("#feedbackForm");
+  f.reset();
+  formError(f, "");
+  fbRating = 0;
+  renderStars();
+  $("#fbCount").textContent = "0 / 2000";
+  $("#feedbackDlg").showModal();
+  setTimeout(() => $("#fbMessage").focus(), 60);
+}
+async function sendFeedback(e) {
+  e.preventDefault();
+  const f = e.target;
+  const btn = $("button[type=submit]", f);
+  const message = $("#fbMessage").value.trim();
+  if (message.length < 3) return formError(f, "Please write a few words so we know what you mean.");
+  formError(f, "");
+  setLoading(btn, true, "Sending…");
+  try {
+    await api("/api/feedback", { method: "POST", body: { category: new FormData(f).get("category") || "Idea", rating: fbRating || null, message, page: state.view } });
+    $("#feedbackDlg").close();
+    toast("Thanks! Your feedback was sent to the TradeDesk team.", "success");
+  } catch (err) { formError(f, err.status === 404 ? "Feedback isn’t available on this server yet. Please try again later." : err.message); }
+  finally { setLoading(btn, false); }
+}
+
+function renderAdminFeedback() {
+  const box = $("#adminFeedback");
+  const all = state.feedback || [];
+  const filter = state.fbFilter || "all";
+  const items = filter === "all" ? all : all.filter((f) => f.status === filter);
+  if (!items.length) {
+    box.innerHTML = `<div class="empty">${icon("feedback")}<strong>${filter === "all" ? "No feedback yet" : `No ${filter} feedback`}</strong><span>When users send feedback from their profile menu, it shows up here.</span></div>`;
+    return;
+  }
+  box.innerHTML = items.map((f) => `
+    <article class="fb-item ${f.status === "new" ? "is-new" : ""}">
+      <img src="${avatarSrc(f.avatar)}" alt="" width="40" height="40" loading="lazy" />
+      <div style="min-width:0">
+        <div class="fb-meta">
+          <strong>${esc(f.display_name || f.username || "Deleted user")}</strong><span>@${esc(f.username || "—")}</span>
+          <span class="tag">${esc(f.category)}</span>
+          ${f.rating ? `<span class="fb-stars" aria-label="${f.rating} of 5 stars">${"★".repeat(f.rating)}${"☆".repeat(5 - f.rating)}</span>` : ""}
+          <span>${esc(f.created_at || "")}</span>${f.page ? `<span>on ${esc(f.page)}</span>` : ""}
+        </div>
+        <p>${esc(f.message)}</p>
+      </div>
+      <div class="fb-actions">
+        <select aria-label="Status" data-fb-status="${esc(f.id)}">
+          ${["new", "read", "done"].map((st) => `<option value="${st}" ${st === f.status ? "selected" : ""}>${st[0].toUpperCase() + st.slice(1)}</option>`).join("")}
+        </select>
+        <button type="button" class="icon-btn icon-btn--sm icon-btn--danger" data-fb-del="${esc(f.id)}" aria-label="Delete feedback">${icon("trash")}</button>
+      </div>
+    </article>`).join("");
+}
+
 /* ------------------------------------------------------------------ tour */
 const TOUR_STEPS = [
   { title: "Welcome to TradeDesk", body: "A quick 60-second tour of your new trading journal. Use the arrow keys or the buttons below, and press Esc to skip any time." },
@@ -1659,7 +1853,12 @@ function maybeStartTour() {
   const uid = state.user?.id;
   if (!uid || store.get(`td_tour_done:${uid}`)) return;
   const isNew = state.justRegistered || (!state.statements.length && !state.txs.length);
-  if (isNew) setTimeout(() => tour.start(), reduceMotion() ? 100 : 700);
+  if (!isNew) return;
+  setTimeout(async () => {
+    // New users choose their colour first (unless they already have one), then get the tour.
+    if (!state.settings?.accent) await openAccentPicker();
+    tour.start();
+  }, reduceMotion() ? 100 : 700);
 }
 
 /* ------------------------------------------------------------------ events */
@@ -1736,7 +1935,11 @@ function bindEvents() {
   $("#btnRefresh").onclick = async () => { try { await refreshData(); toast("Up to date", "success", 2500); } catch (err) { toast(err.message, "error"); } };
   $("#btnLogTrade").onclick = () => openJournalDialog({ type: "BUY" });
   $("#btnUserMenu").onclick = (e) => { e.stopPropagation(); $("#userMenu").hidden ? openUserMenu() : closeUserMenu(); };
-  document.addEventListener("click", (e) => { if (!e.target.closest("#userMenu, #btnUserMenu")) closeUserMenu(); });
+  document.addEventListener("click", (e) => {
+    // Elements re-rendered by the click (e.g. colour dots) are detached by now; they were inside the menu.
+    if (!e.target.isConnected || e.target.closest("#userMenu, #btnUserMenu")) return;
+    closeUserMenu();
+  });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("#userMenu").hidden) { closeUserMenu(); $("#btnUserMenu").focus(); } });
   $("#menuProfile").onclick = () => { closeUserMenu(); openProfileDialog(); };
   $("#menuTour").onclick = () => { closeUserMenu(); tour.start(); };
@@ -1750,6 +1953,70 @@ function bindEvents() {
   $("#menuLogout").onclick = () => { closeUserMenu(); logout(); };
   $$("[data-theme-val]").forEach((b) => (b.onclick = () => applyTheme(b.dataset.themeVal)));
 
+  // Colour theme (profile menu)
+  $("#menuAccents").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-accent-pick]");
+    if (!b) return;
+    sfx.select();
+    applyAccent(b.dataset.accentPick, { save: true });
+    toast(`${accentById(b.dataset.accentPick).name} colour theme applied`, "info", 2500);
+  });
+
+  // Sound switch
+  const soundSwitch = $("#soundSwitch");
+  const syncSound = () => soundSwitch.setAttribute("aria-checked", String(isSoundEnabled()));
+  syncSound();
+  soundSwitch.onclick = (e) => {
+    e.stopPropagation();
+    const on = !isSoundEnabled();
+    if (!on) sfx.toggle(false);
+    setSoundEnabled(on);
+    syncSound();
+  };
+
+  // Feedback
+  $("#menuFeedback").onclick = () => { closeUserMenu(); openFeedback(); };
+  $("#feedbackForm").addEventListener("submit", sendFeedback);
+  $("#fbMessage").addEventListener("input", () => { $("#fbCount").textContent = `${$("#fbMessage").value.length} / 2000`; });
+
+  // Admin feedback controls
+  $("#fbFilter").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-f]");
+    if (!b) return;
+    $$("#fbFilter button").forEach((x) => x.classList.toggle("on", x === b));
+    state.fbFilter = b.dataset.f;
+    renderAdminFeedback();
+  });
+  $("#adminFeedback").addEventListener("change", async (e) => {
+    const sel = e.target.closest("[data-fb-status]");
+    if (!sel) return;
+    try {
+      await api(`/api/admin/feedback/${encodeURIComponent(sel.dataset.fbStatus)}`, { method: "PUT", body: { status: sel.value } });
+      const item = (state.feedback || []).find((f) => String(f.id) === sel.dataset.fbStatus);
+      if (item) item.status = sel.value;
+      renderAdminFeedback();
+      toast("Feedback updated", "success", 2000);
+    } catch (err) { toast(err.message, "error"); }
+  });
+  $("#adminFeedback").addEventListener("click", async (e) => {
+    const b = e.target.closest("[data-fb-del]");
+    if (!b) return;
+    const ok = await confirmDialog({ title: "Delete this feedback?", body: "It will be removed permanently.", ok: "Delete" });
+    if (!ok) return;
+    try { await api(`/api/admin/feedback/${encodeURIComponent(b.dataset.fbDel)}`, { method: "DELETE" }); await loadAdmin(); }
+    catch (err) { toast(err.message, "error"); }
+  });
+
+  // Sounds: button presses, tour steps, dialogs opening.
+  document.addEventListener("click", (e) => {
+    const el = e.target.closest("button, a.btn, .chip-check, [role=menuitem]");
+    if (!el || el.closest("#primaryNav") || el.matches("#soundSwitch, [data-accent-pick], .picker-opt, #accentConfirm, .star")) return;
+    if (el.matches("#tourNext, #tourBack")) sfx.step(); else sfx.tap();
+  }, true);
+  new MutationObserver((muts) => {
+    for (const m of muts) if (m.target.open && m.target.id !== "parsingDlg") sfx.open();
+  }).observe(document.body, { subtree: true, attributes: true, attributeFilter: ["open"] });
+
   // Delegated actions inside the app
   $("#appPage").addEventListener("click", async (e) => {
     const t = e.target.closest("button, a");
@@ -1757,6 +2024,7 @@ function bindEvents() {
     const d = t.dataset;
     if (d.action === "add-account") openAccountDialog();
     else if (d.action === "add-goal") openGoalDialog();
+    else if (d.action === "feedback") openFeedback();
     else if (d.action === "log-trade") openJournalDialog({ type: "BUY" });
     else if (d.accEdit) openAccountDialog(state.accounts.find((a) => a.id === d.accEdit));
     else if (d.accDel) { const a = state.accounts.find((x) => x.id === d.accDel); if (a) deleteAccount(a); }
@@ -1891,6 +2159,7 @@ async function boot() {
   renderAvatarPicker($("#registerAvatarPicker"), $("#registerAvatarInput"), "av-1");
   bindEvents();
   $$("[data-itext]").forEach(interactive);
+  renderMenuAccents();
   updateGreeting();
   setInterval(updateGreeting, 15000);
   console.info(`TradeDesk v${APP_VERSION}`);
