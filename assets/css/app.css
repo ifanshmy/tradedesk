@@ -735,6 +735,7 @@ td.empty { display: table-cell; }
 }
 @media (max-width: 1060px) {
   .auth { padding-top: 72px; }
+  .auth-veil { background: linear-gradient(180deg, rgba(10, 11, 14, 0.62) 0%, rgba(10, 11, 14, 0.42) 45%, rgba(10, 11, 14, 0.55) 100%); }
   .auth-privacy { position: relative; right: auto; bottom: auto; max-width: 520px; width: 100%; margin-top: 16px; }
   .primary-nav a .ico { display: inline; }
   .topnav-bar { height: auto; flex-wrap: wrap; padding: 10px 10px 10px 14px; row-gap: 10px; }
