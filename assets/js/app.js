@@ -271,48 +271,39 @@ function openAccentPicker() {
   $("#pvName").textContent = firstName(state.user);
   $("#pvDate").textContent = new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
   list.innerHTML = ACCENT_THEMES.map((a) => `
-    <button type="button" class="picker-opt" role="radio" aria-checked="${a.id === chosen}" data-pick="${a.id}" style="--sw:${a.hex}">
-      <i aria-hidden="true"></i><span><b>${a.name}</b><span>${esc(a.desc)}</span></span><em class="tick" aria-hidden="true">${icon("check")}</em>
+    <button type="button" class="pk-sw" role="radio" aria-checked="${a.id === chosen}" aria-label="${a.name}" data-pick="${a.id}" style="--sw:${a.hex}">
+      <span class="pk-dot" aria-hidden="true"></span><span class="pk-name">${a.name}</span>
     </button>`).join("");
   const show = (id, animate = true) => {
     preview.setAttribute("data-accent", id);
     applyAccent(id, { remember: false });
-    $("#accentChosenName").textContent = accentById(chosen).name;
     if (animate && !reduceMotion()) {
-      spark.classList.remove("draw"); preview.classList.remove("pulse");
+      spark.classList.remove("draw");
       void spark.getBoundingClientRect();
-      spark.classList.add("draw"); preview.classList.add("pulse");
+      spark.classList.add("draw");
     }
   };
   const choose = (id) => {
     chosen = id;
-    $$(".picker-opt", list).forEach((b) => b.setAttribute("aria-checked", String(b.dataset.pick === id)));
-    $("#accentConfirm span").textContent = `Use ${accentById(id).name}`;
+    const t = accentById(id);
+    $$(".pk-sw", list).forEach((b) => { const on = b.dataset.pick === id; b.setAttribute("aria-checked", String(on)); b.tabIndex = on ? 0 : -1; });
+    $("#accentChosenName").textContent = t.name;
+    $("#accentChosenDesc").textContent = t.desc;
     show(id);
   };
-  const opts = $$(".picker-opt", list);
+  const opts = $$(".pk-sw", list);
   opts.forEach((b, i) => {
     b.onmouseenter = () => { if (b.dataset.pick !== preview.getAttribute("data-accent")) { sfx.hover(); show(b.dataset.pick); } };
-    b.onfocus = b.onmouseenter;
     b.onclick = () => { sfx.select(); choose(b.dataset.pick); };
     b.onkeydown = (e) => {
-      const d = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 }[e.key];
-      if (d) { e.preventDefault(); const n = opts[(i + d + opts.length) % opts.length]; n.focus(); choose(n.dataset.pick); }
+      const d = { ArrowDown: 4, ArrowRight: 1, ArrowUp: -4, ArrowLeft: -1 }[e.key];
+      if (d) { e.preventDefault(); const n = opts[Math.max(0, Math.min(opts.length - 1, i + d))]; n.focus(); choose(n.dataset.pick); }
     };
   });
   list.onmouseleave = () => show(chosen, false);
-  // Gentle 3D tilt following the pointer.
-  const stage = $("#previewStage");
-  stage.onpointermove = (e) => {
-    if (reduceMotion()) return;
-    const r = stage.getBoundingClientRect();
-    preview.style.setProperty("--ry", `${(((e.clientX - r.left) / r.width) - 0.5) * 10}deg`);
-    preview.style.setProperty("--rx", `${(0.5 - (e.clientY - r.top) / r.height) * 8}deg`);
-  };
-  stage.onpointerleave = () => { preview.style.setProperty("--rx", "0deg"); preview.style.setProperty("--ry", "0deg"); };
   choose(chosen);
   dlg.showModal();
-  setTimeout(() => $(`.picker-opt[data-pick="${chosen}"]`, list)?.focus(), 80);
+  setTimeout(() => $(`.pk-sw[data-pick="${chosen}"]`, list)?.focus(), 80);
   return new Promise((resolve) => {
     const finish = (id) => {
       applyAccent(id, { save: true });
@@ -320,7 +311,7 @@ function openAccentPicker() {
       resolve(id);
     };
     $("#accentConfirm").onclick = () => { sfx.success(); finish(chosen); };
-    $("#accentSkip").onclick = () => finish("ember");
+    $("#accentSkip").onclick = () => finish(original);
     dlg.addEventListener("cancel", (e) => { e.preventDefault(); finish(original === "ember" ? "ember" : original); }, { once: true });
   });
 }
@@ -2284,7 +2275,7 @@ function bindEvents() {
   // Sounds: button presses, tour steps, dialogs opening.
   document.addEventListener("click", (e) => {
     const el = e.target.closest("button, a.btn, .chip-check, [role=menuitem]");
-    if (!el || el.closest("#primaryNav") || el.matches("#soundSwitch, #cursorSwitch, [data-accent-pick], .picker-opt, #accentConfirm, .star")) return;
+    if (!el || el.closest("#primaryNav") || el.matches("#soundSwitch, #cursorSwitch, [data-accent-pick], .pk-sw, #accentConfirm, .star")) return;
     if (el.matches("#tourNext, #tourBack")) sfx.step(); else sfx.tap();
   }, true);
   new MutationObserver((muts) => {

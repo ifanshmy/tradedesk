@@ -805,13 +805,19 @@
 
   <dialog id="accentDlg" class="dlg dlg--wide" aria-labelledby="accentTitle">
     <div class="dlg-body">
-      <div>
-        <p class="eyebrow">Make it yours</p>
-        <h2 class="dlg-title" id="accentTitle">Pick your dashboard colour</h2>
-        <p class="dlg-lede" style="margin-top:4px">Hover to preview, click to choose. You can change it any time from your profile menu.</p>
-      </div>
-      <div class="picker">
-        <div class="picker-list" id="accentList" role="radiogroup" aria-label="Colour theme"></div>
+      <header class="pk-head">
+        <h2 class="dlg-title" id="accentTitle">Choose your colour</h2>
+        <p class="dlg-lede">Used for highlights, charts and buttons across your dashboard.</p>
+      </header>
+      <div class="pk">
+        <div class="pk-side">
+          <div class="pk-swatches" id="accentList" role="radiogroup" aria-label="Colour theme"></div>
+          <div class="pk-current" aria-live="polite">
+            <b id="accentChosenName">Ember</b>
+            <span id="accentChosenDesc"></span>
+          </div>
+          <p class="pk-note">You can change this any time from your profile menu.</p>
+        </div>
         <div class="preview-stage" id="previewStage">
           <div class="preview" id="accentPreview" aria-hidden="true">
             <div class="pv-bar">
@@ -843,10 +849,9 @@
           </div>
         </div>
       </div>
-      <div class="dlg-actions">
-        <span class="picker-name grow">Selected: <b id="accentChosenName">Ember</b></span>
-        <button type="button" class="btn btn--ghost" id="accentSkip">Keep Ember</button>
-        <button type="button" class="btn btn--primary" id="accentConfirm"><svg class="ico"><use href="#i-check"/></svg><span>Use this colour</span></button>
+      <div class="dlg-actions pk-actions">
+        <button type="button" class="link-btn pk-skip" id="accentSkip">Skip for now</button>
+        <button type="button" class="btn btn--primary" id="accentConfirm"><span>Continue</span></button>
       </div>
     </div>
   </dialog>
