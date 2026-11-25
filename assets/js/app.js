@@ -32,7 +32,7 @@ function fmt(v, cur, dp = 2) {
   return `${n < 0 ? "−" : ""}${p}${p && p.length > 1 && !p.endsWith("$") ? " " : ""}${s}`;
 }
 const signed = (v, cur, dp = 2) => (num(v) > 0 ? "+" : "") + fmt(v, cur, dp);
-const pct = (v) => `${num(v) > 0 ? "+" : ""}${num(v).toFixed(2)}%`;
+const pct = (v) => (v === null || v === undefined ? "—" : `${num(v) > 0 ? "+" : ""}${num(v).toFixed(2)}%`);
 const cls = (v) => (num(v) > 0 ? "up" : num(v) < 0 ? "down" : "");
 const qty = (v) => num(v).toLocaleString("en-US", { maximumFractionDigits: 4 });
 const today = () => new Date().toLocaleDateString("en-CA");
@@ -914,8 +914,10 @@ function renderHero() {
   $("#heroBase").textContent = b;
   countTo($("#heroNav"), num(t.equity), (v) => moneyFigure(v, b), 1100);
   const ret = num(t.total_return);
-  $("#heroDelta").innerHTML = `
-    <span class="chip ${ret >= 0 ? "chip--up" : "chip--down"}">${icon(ret >= 0 ? "up" : "down", "ico--sm")}${pct(t.total_return_pct)}</span>
+  $("#heroDelta").innerHTML = t.capital_known === false
+    ? `<span class="chip">${icon("info", "ico--sm")}Return not available</span>
+       <span>Your deposits weren’t found in your statements. <button type="button" class="link-btn" data-goto="journal">Add them in the Journal</button> to measure your return.</span>`
+    : `<span class="chip ${ret >= 0 ? "chip--up" : "chip--down"}">${icon(ret >= 0 ? "up" : "down", "ico--sm")}${pct(t.total_return_pct)}</span>
     <span><b class="money ${cls(ret)}">${signed(ret, b)}</b> net return on ${fmt(t.net_deposits, b)} capital</span>`;
   $("#heroPortfolio").textContent = fmt(t.market_value, b);
   $("#heroCash").textContent = fmt(t.cash, b);
@@ -948,7 +950,9 @@ function renderKpis() {
   const realised = num(t.realized) + num(t.dividends);
   const eq = num(t.equity);
   $("#kpiGrid").innerHTML = [
-    kpiTile({ label: "Net return", value: signed(t.total_return, b), valueCls: cls(t.total_return), sub: `${pct(t.total_return_pct)} vs capital`, ico: "trend", count: { v: t.total_return, kind: "signed", cur: b } }),
+    t.capital_known === false
+      ? kpiTile({ label: "Net return", value: "—", sub: "Deposits not found in statements", ico: "trend" })
+      : kpiTile({ label: "Net return", value: signed(t.total_return, b), valueCls: cls(t.total_return), sub: `${pct(t.total_return_pct)} vs capital`, ico: "trend", count: { v: t.total_return, kind: "signed", cur: b } }),
     kpiTile({ label: "Realised + dividends", value: signed(realised, b), valueCls: cls(realised), sub: `Dividends ${fmt(t.dividends, b)} · Fees ${fmt(t.fees, b)}`, ico: "layers", tone: "kpi-icon--sage", count: { v: realised, kind: "signed", cur: b } }),
     kpiTile({ label: "Win rate", value: `${num(t.win_rate).toFixed(1)}%`, sub: `${num(t.closed_trades)} closed · PF ${esc(t.profit_factor ?? 0)}`, ico: "target", meter: num(t.win_rate) / 100, count: { v: t.win_rate, kind: "pct" } }),
     kpiTile({ label: "Cash reserve", value: fmt(t.cash, b), sub: `${eq > 0 ? ((num(t.cash) / eq) * 100).toFixed(1) : "0.0"}% of NAV`, ico: "wallet", tone: "kpi-icon--sage", meter: eq > 0 ? num(t.cash) / eq : 0, count: { v: t.cash, kind: "money", cur: b } }),
@@ -1023,8 +1027,10 @@ function renderAccounts() {
       <div class="acc-balance">
         <div class="acc-nav money">${fmt(a.equity, a.currency)}</div>
         <div class="acc-ret">
-          <span class="chip ${ret >= 0 ? "chip--up" : "chip--down"}">${icon(ret >= 0 ? "up" : "down", "ico--sm")}${pct(a.total_return_pct)}</span>
-          <span class="money ${cls(ret)}">${signed(ret, a.currency)}</span>
+          ${a.capital_known === false
+            ? `<span class="chip" data-tip="Deposits weren’t found in this account’s statements">Return n/a</span>`
+            : `<span class="chip ${ret >= 0 ? "chip--up" : "chip--down"}">${icon(ret >= 0 ? "up" : "down", "ico--sm")}${pct(a.total_return_pct)}</span>
+          <span class="money ${cls(ret)}">${signed(ret, a.currency)}</span>`}
           ${a.currency !== base ? `<span>· <span class="money">${fmt(a.equity_base, base)}</span></span>` : ""}
         </div>
       </div>
@@ -2243,6 +2249,11 @@ function bindEvents() {
     syncCursor();
   };
   $("#btnDeactivate").onclick = deactivateAccount;
+  // In-text links that jump to a view, e.g. "Add them in the Journal".
+  document.addEventListener("click", (e) => {
+    const g = e.target.closest("[data-goto]");
+    if (g) { e.preventDefault(); go(g.dataset.goto); }
+  });
 
   // Reduce motion switch
   const motionSwitch = $("#motionSwitch");
