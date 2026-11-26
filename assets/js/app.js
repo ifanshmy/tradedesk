@@ -136,7 +136,8 @@ function showWakeNote(on) {
 }
 async function api(path, opts = {}) {
   const method = (opts.method || "GET").toUpperCase();
-  const retryable = method === "GET" && !opts.noRetry;
+  // GETs are always safe to retry; callers opt in for requests that are safe to repeat (preview, apply).
+  const retryable = (method === "GET" || opts.retry) && !opts.noRetry;
   for (let attempt = 0; ; attempt++) {
     try {
       const data = await apiOnce(path, opts);
@@ -1854,7 +1855,8 @@ async function previewAndConfirm(files, accountId, passwords, round = 0) {
   files.forEach((f) => fd.append("files", f, f.name));
   let res;
   try {
-    res = await api("/api/statements/preview", { method: "POST", body: fd, timeout: 120000 });
+    await api("/api/health", { noAuth: true });  // make sure the server is awake before sending files
+    res = await api("/api/statements/preview", { method: "POST", body: fd, timeout: 180000, retry: true });
   } catch (err) {
     dlg.close();
     $("#parsingTitle").textContent = "Reading your statement";
@@ -1951,7 +1953,9 @@ async function uploadBatch(files, accountId, passwords, round = 0) {
   files.forEach((f) => fd.append("files", f, f.name));
   let res;
   try {
-    res = await api("/api/statements/upload", { method: "POST", body: fd, timeout: 120000 });
+    await api("/api/health", { noAuth: true });
+    // Safe to repeat: re-applying a month replaces it, and the server reuses what the preview already read.
+    res = await api("/api/statements/upload", { method: "POST", body: fd, timeout: 180000, retry: true });
   } catch (err) {
     dlg.close();
     const errs = err.data?.errors || [];
