@@ -1856,6 +1856,7 @@ function readingHtml(r) {
     <summary>How this statement was read</summary>
     <p class="muted">A private summary for troubleshooting: letters are shown as x and digits as 9, so it contains no names, symbols or amounts.</p>
     <p><b>Read:</b> ${num(c.positions)} positions · ${num(c.trades)} trades · ${num(c.cash_events)} cash movements · ${num(c.position_changes)} position changes · ${num(r.lines)} lines of text</p>
+    <p><b>Overview:</b> ${r.overview_adds_up ? "securities + cash add up to the NAV" : "securities + cash do <b>not</b> add up to the NAV"}${r.overview_source ? ` · figures from ${esc({ labels: "the overview", positions: "the positions read (overview layout not recognised)", unreconciled: "the NAV only" }[r.overview_source] || r.overview_source)}` : ""}</p>
     <div class="table-scroll"><table class="tbl"><thead><tr><th>Section</th><th>Title</th><th>First lines (shape)</th></tr></thead><tbody>${rows}</tbody></table></div>
     <p class="muted" style="margin-top:10px"><b>Titles seen:</b> ${(r.headings || []).map(esc).join(" · ") || "—"}</p>
   </details>`;
