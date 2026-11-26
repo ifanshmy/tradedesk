@@ -1847,6 +1847,20 @@ async function previewAndConfirm(files, accountId, passwords, round = 0) {
   return { files: files.filter((f) => keep.has(f.name)), passwords };
 }
 
+function readingHtml(r) {
+  if (!r) return "";
+  const c = r.counts || {};
+  const rows = (r.sections || []).map((s) => `<tr><td>${esc(s.label)}</td><td>${s.found ? "Found" : "<b>Not found</b>"}</td>
+    <td>${s.sample.length ? `<code class="shape">${s.sample.map(esc).join("<br>")}</code>` : "—"}</td></tr>`).join("");
+  return `<details class="disclosure reading">
+    <summary>How this statement was read</summary>
+    <p class="muted">A private summary for troubleshooting: letters are shown as x and digits as 9, so it contains no names, symbols or amounts.</p>
+    <p><b>Read:</b> ${num(c.positions)} positions · ${num(c.trades)} trades · ${num(c.cash_events)} cash movements · ${num(c.position_changes)} position changes · ${num(r.lines)} lines of text</p>
+    <div class="table-scroll"><table class="tbl"><thead><tr><th>Section</th><th>Title</th><th>First lines (shape)</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <p class="muted" style="margin-top:10px"><b>Titles seen:</b> ${(r.headings || []).map(esc).join(" · ") || "—"}</p>
+  </details>`;
+}
+
 function showVerification(res) {
   const cur = res.currency || "MYR";
   const all = [...res.files.flatMap((f) => f.checks), ...(res.after_checks || [])];
@@ -1865,6 +1879,7 @@ function showVerification(res) {
       <div class="v-file-head"><span><b>${esc(f.period || f.month || f.filename)}</b> · ${esc(String(f.broker || "").replace(/^./, (x) => x.toUpperCase()))}</span><span class="muted">${esc(f.filename)} → ${esc(f.account_name)}</span></div>
       <div class="v-figs">${fig("Start NAV", g.starting_nav, c)}${fig("End NAV", g.ending_nav, c)}${fig("Securities", g.portfolio_value, c)}${fig("Cash", g.cash_balance, c)}${fig("Deposits", g.deposits, c)}${fig("Withdrawals", g.withdrawals, c)}${fig("Dividends", g.dividends, c)}${fig("IPO applications", g.ipo, c)}${fig("Fees", g.fees, c)}${fig("Trades", String(g.trades))}</div>
       ${checksHtml(f.checks)}
+      ${readingHtml(f.reading)}
     </section>`;
   }).join("");
   const rows = [["Net asset value", "equity"], ["Net deposits", "net_deposits"], ["Net return", "total_return"], ["Realised P&L", "realized"],

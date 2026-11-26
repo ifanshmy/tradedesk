@@ -894,6 +894,10 @@ td.empty { display: table-cell; }
 .star.on { color: var(--raw-amber-500); }
 .fb-count { justify-self: end; font-size: var(--fs-xs); color: var(--faint); }
 .feedback-list { display: grid; gap: 10px; }
+.reading { margin-top: 10px; }
+.reading p { margin: 8px 0; font-size: var(--fs-sm); }
+.reading .tbl td { white-space: normal; vertical-align: top; }
+.reading code.shape { font-size: 11px; line-height: 1.5; color: var(--ink-2); word-break: break-all; }
 .sec-summary { display: flex; flex-wrap: wrap; gap: 8px; }
 .chip--up { background: var(--up-soft); color: var(--up); border-color: transparent; }
 .sec-table td { white-space: nowrap; }
