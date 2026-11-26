@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-3.7.6-111111?style=flat-square" alt="Version 3.7.6">
+  <img src="https://img.shields.io/badge/version-3.7.7-111111?style=flat-square" alt="Version 3.7.7">
   <img src="https://img.shields.io/badge/brokers-Moomoo%20%C2%B7%20Mplus%20%C2%B7%20Webull-111111?style=flat-square" alt="Moomoo, Mplus, Webull">
   <img src="https://img.shields.io/badge/backend-FastAPI-111111?style=flat-square" alt="FastAPI">
   <img src="https://img.shields.io/badge/frontend-no%20build%20step-111111?style=flat-square" alt="No build step">

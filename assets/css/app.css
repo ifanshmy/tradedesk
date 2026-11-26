@@ -554,6 +554,9 @@ input[type="password"]::-ms-reveal, input[type="password"]::-ms-clear { display:
 /* =============================== Accounts =============================== */
 .accounts { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap: var(--s-5); }
 .acc { --acc: var(--primary); position: relative; overflow: hidden; border-radius: var(--r-lg); padding: clamp(16px, 1.6vw, 22px); display: flex; flex-direction: column; gap: 16px; min-width: 0; transition: transform var(--t-med) var(--ease), box-shadow var(--t-med) var(--ease); }
+/* Account cards are solid (no see-through glass), keeping the soft brand tint in the corner. */
+.acc.glass { background: #ffffff; -webkit-backdrop-filter: none; backdrop-filter: none; border-color: var(--line); }
+:root[data-theme="dark"] .acc.glass { background: #16181d; }
 .acc::before { content: ""; position: absolute; inset: 0; background: radial-gradient(120% 70% at 100% 0%, color-mix(in srgb, var(--acc) 16%, transparent), transparent 60%); pointer-events: none; }
 .acc:hover { transform: translateY(-3px); box-shadow: var(--glass-shadow), 0 24px 48px -28px color-mix(in srgb, var(--acc) 60%, transparent); }
 .acc > * { position: relative; }

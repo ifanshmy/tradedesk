@@ -1026,8 +1026,9 @@ function sparkSvg(values, color, id) {
 }
 
 function maskAccount(no) {
-  const s = String(no || "").replace(/\s+/g, "");
-  return s.length > 4 ? `•••• ${s.slice(-4)}` : s;
+  // Last four letters/digits only, so stored text like "•••• 310)" or "(CDS …)" masks cleanly.
+  const s = String(no || "").replace(/[^A-Za-z0-9]/g, "");
+  return s.length > 4 ? `•••• ${s.slice(-4)}` : s ? `•••• ${s}` : "";
 }
 
 function accountLogo(a, color) {
