@@ -126,7 +126,34 @@ let tour = null;
 class ApiError extends Error {
   constructor(message, status, data) { super(message); this.status = status; this.data = data; }
 }
+// The free server sleeps when idle and restarts on each update. Safe requests (GET) are retried quietly while it
+// wakes, with one shared "Waking the server…" note instead of an error per request.
+const WAKE_DELAYS = [2000, 4000, 7000, 12000, 20000];
+let wakeNote = null;
+function showWakeNote(on) {
+  if (on && !wakeNote) wakeNote = toast("Waking the server… this can take up to a minute after a quiet spell or an update.", "info", 60000);
+  if (!on && wakeNote) { wakeNote.dismiss(); wakeNote = null; }
+}
 async function api(path, opts = {}) {
+  const method = (opts.method || "GET").toUpperCase();
+  const retryable = method === "GET" && !opts.noRetry;
+  for (let attempt = 0; ; attempt++) {
+    try {
+      const data = await apiOnce(path, opts);
+      if (attempt > 0) showWakeNote(false);
+      return data;
+    } catch (err) {
+      const waking = err instanceof ApiError && (err.status === 0 && !err.timeout || [502, 503, 504].includes(err.status));
+      if (!retryable || !waking || attempt >= WAKE_DELAYS.length) {
+        if (attempt > 0) showWakeNote(false);
+        throw err;
+      }
+      showWakeNote(true);
+      await new Promise((r) => setTimeout(r, WAKE_DELAYS[attempt]));
+    }
+  }
+}
+async function apiOnce(path, opts = {}) {
   if (!API_CONFIGURED) throw new ApiError("This site isn’t connected to a TradeDesk server yet.", 0);
   const headers = { ...(opts.headers || {}) };
   const isForm = opts.body instanceof FormData;
@@ -144,7 +171,7 @@ async function api(path, opts = {}) {
     });
   } catch (err) {
     clearTimeout(timer);
-    if (err.name === "AbortError") throw new ApiError("The server took too long to respond. Please try again.", 0);
+    if (err.name === "AbortError") { const e = new ApiError("The server took too long to respond. Please try again.", 0); e.timeout = true; throw e; }
     throw new ApiError("Can’t reach the TradeDesk server. If it was asleep it may take ~30 seconds to wake. Please try again.", 0);
   }
   clearTimeout(timer);
@@ -165,7 +192,10 @@ async function api(path, opts = {}) {
 /* ------------------------------------------------------------------ feedback */
 function toast(message, type = "info", ms = 5000) {
   const box = $("#toasts");
-  if (!message || !box) return;
+  if (!message || !box) return null;
+  // The same message already on screen? Keep that one instead of stacking duplicates.
+  const same = [...box.children].find((t) => !t.classList.contains("out") && t.dataset.msg === `${type}:${message}`);
+  if (same) { clearTimeout(same._t); same._t = setTimeout(same._remove, ms); return same._handle; }
   while (box.children.length >= 4) box.firstElementChild.remove();
   const el = document.createElement("div");
   el.className = `toast toast--${type}`;
@@ -173,10 +203,14 @@ function toast(message, type = "info", ms = 5000) {
   el.setAttribute("role", type === "error" ? "alert" : "status");
   const ico = type === "error" ? "alert" : type === "success" ? "check" : "info";
   el.innerHTML = `${icon(ico)}<span>${esc(message)}</span><button type="button" aria-label="Dismiss">${icon("x", "ico--sm")}</button>`;
-  const remove = () => { el.classList.add("out"); setTimeout(() => el.remove(), 200); };
+  const remove = () => { clearTimeout(el._t); el.classList.add("out"); setTimeout(() => el.remove(), 200); };
+  el.dataset.msg = `${type}:${message}`;
+  el._remove = remove;
+  el._handle = { dismiss: remove };
   el.querySelector("button").onclick = remove;
   box.appendChild(el);
-  setTimeout(remove, ms);
+  el._t = setTimeout(remove, ms);
+  return el._handle;
 }
 
 function setLoading(btn, on, label) {
